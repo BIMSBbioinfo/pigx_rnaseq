@@ -52,12 +52,14 @@ MAPPED_READS_DIR  = os.path.join(OUTPUT_DIR, 'mapped_reads')
 BEDGRAPH_DIR      = os.path.join(OUTPUT_DIR, 'bedgraph_files')
 HTSEQ_COUNTS_DIR  = os.path.join(OUTPUT_DIR, 'feature_counts')
 SALMON_DIR        = os.path.join(OUTPUT_DIR, 'salmon_output')
+KALLISTO_DIR      = os.path.join(OUTPUT_DIR, 'kallisto_output')
 PREPROCESSED_OUT  = os.path.join(OUTPUT_DIR, 'preprocessed_data')
 
 FASTQC_EXEC  = config['tools']['fastqc']['executable']
 MULTIQC_EXEC = config['tools']['multiqc']['executable']
 STAR_EXEC    = config['tools']['star']['executable']
 SALMON_EXEC  = config['tools']['salmon']['executable']
+KALLISTO_EXEC    = config['tools']['kallisto']['executable']
 TRIM_GALORE_EXEC = config['tools']['trim-galore']['executable']
 BEDTOOLS_EXEC    = config['tools']['bedtools']['executable']
 SAMTOOLS_EXEC    = config['tools']['samtools']['executable']
@@ -68,12 +70,17 @@ STAR_INDEX_THREADS   = config['execution']['rules']['star_index']['threads']
 SALMON_INDEX_THREADS = config['execution']['rules']['salmon_index']['threads']
 STAR_MAP_THREADS     = config['execution']['rules']['star_map']['threads']
 SALMON_QUANT_THREADS = config['execution']['rules']['salmon_quant']['threads']
+KALLISTO_QUANT_THREADS = config['execution']['rules']['kallisto_quant']['threads']
 
 
 GTF_FILE = config['locations']['gtf-file']
 SAMPLE_SHEET_FILE = config['locations']['sample-sheet']
 
 DE_ANALYSIS_LIST = config.get('DEanalyses', {})
+
+# These are needed only for single end reads when using kallisto
+MEAN_FRAGMENT_LENGTH = config.get('library', {}).get('mean_fragment_length')
+SD_FRAGMENT_LENGTH = config.get('library', {}).get('sd_fragment_length')
 
 ## Load sample sheet
 with open(SAMPLE_SHEET_FILE, 'r') as fp:
@@ -158,6 +165,14 @@ targets = {
         'files':
           expand(os.path.join(SALMON_DIR, "{sample}", "quant.sf"), sample = SAMPLES) + 
 	  expand(os.path.join(SALMON_DIR, "{sample}", "quant.genes.sf"), sample = SAMPLES)
+    },
+    'kallisto_index': {
+        'description': 'Create kallisto index of transcripts.',
+        'files': [os.path.join(OUTPUT_DIR, 'kallisto_index', "transcripts.idx")]
+    },
+    'kallisto_quant': {
+        'description': "Estimate transcript abundance using kallisto.",
+        'files': expand(os.path.join(KALLISTO_DIR, "{sample}", "abundance.tsv"), sample = SAMPLES)
     },
     'salmon_counts': {
         'description': "Get count matrix from SALMON quant.",
@@ -283,6 +298,30 @@ rule salmon_index:
       salmon_index_file = os.path.join(OUTPUT_DIR, 'salmon_index', "sa.bin")
   log: os.path.join(LOG_DIR, 'salmon_index.log')
   shell: "{SALMON_EXEC} index -t {input} -i {output.salmon_index_dir} -p {SALMON_INDEX_THREADS} >> {log} 2>&1"
+
+rule kallisto_index:
+  input:
+      CDNA_FASTA
+  output:
+      kallisto_index_file = os.path.join(OUTPUT_DIR, 'kallisto_index', "transcripts.idx")
+  log: os.path.join(LOG_DIR, 'kallisto_index.log')
+  shell: "{KALLISTO_EXEC} index -i {output.kallisto_index_file} {input} >> {log} 2>&1"
+
+rule kallisto_quant:
+  input:
+      index_file = rules.kallisto_index.output.kallisto_index_file,
+      reads = map_input
+  output:
+      os.path.join(KALLISTO_DIR, "{sample}", "abundance.tsv"),
+  params:
+      outfolder = os.path.join(KALLISTO_DIR, "{sample}")
+  log: os.path.join(LOG_DIR, 'kallisto_quant_{sample}.log')
+  run:
+    if(len(input.reads) == 1):
+        COMMAND = "{KALLISTO_EXEC} quant -i {input.index_file} -t {KALLISTO_QUANT_THREADS} -o {params.outfolder} --bias -g {GTF_FILE} --single -l {MEAN_FRAGMENT_LENGTH} -s {SD_FRAGMENT_LENGTH} {input.reads} >> {log} 2>&1"
+    elif(len(input.reads) == 2):
+        COMMAND = "{KALLISTO_EXEC} quant -i {input.index_file} -t {KALLISTO_QUANT_THREADS} -o {params.outfolder} --bias -g {GTF_FILE} {input.reads[0]} {input.reads[1]} >> {log} 2>&1"
+    shell(COMMAND)
 
 rule salmon_quant: 
   input: 

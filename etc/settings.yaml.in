@@ -28,6 +28,9 @@ execution:
     salmon_quant:
       threads: 8
       memory: 5G
+    kallisto_quant:
+      threads: 8
+      memoth: 5G
     star_map:
       threads: 8
       memory: 4G
@@ -49,6 +52,12 @@ organism: ''
     #control_sample_groups: "HBR"
     # comma separated list of additional co-variates to control for in differential expression analysis (e.g. batch, age, temperature, sequencing_technology etc.). Must correspond to a column field in the sample_sheet.csv file.)
     #covariates: '' 
+
+# When using single end libraries, users must provide estimates for these numbers
+# for kallisto to work. Not necessary for PE.
+library:
+  mean_fragment_length: 100
+  sd_fragment_length: 5
 
 tools:
   fastqc:
