@@ -67,6 +67,8 @@ tools:
     executable: @HTSEQ_COUNT@
   salmon:
     executable: @SALMON@
+  kallisto:
+    executable: @KALLISTO@
   R:
     Rscript: @RSCRIPT@
     executable: @R@

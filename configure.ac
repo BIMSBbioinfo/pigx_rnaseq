@@ -45,6 +45,7 @@ find_or_override_prog([HTSEQ_COUNT],     [htseq-count])
 find_or_override_prog([BEDTOOLS],     [bedtools]) 
 
 find_or_override_prog([SALMON],     [salmon])
+find_or_override_prog([KALLISTO],     [kallisto])
 
 find_or_override_prog([R],               [R])
 find_or_override_prog([RSCRIPT],         [Rscript])
