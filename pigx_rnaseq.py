@@ -172,7 +172,7 @@ targets = {
     },
     'kallisto_quant': {
         'description': "Estimate transcript abundance using kallisto.",
-        'files': expand(os.path.join(KALLISTO_DIR, "{sample}", "abundance.tsv"), sample = SAMPLES)
+        'files': expand(os.path.join(KALLISTO_DIR, "{sample}", "abundance.h5"), sample = SAMPLES)
     },
     'salmon_counts': {
         'description': "Get count matrix from SALMON quant.",
@@ -312,7 +312,7 @@ rule kallisto_quant:
       index_file = rules.kallisto_index.output.kallisto_index_file,
       reads = map_input
   output:
-      os.path.join(KALLISTO_DIR, "{sample}", "abundance.tsv"),
+      os.path.join(KALLISTO_DIR, "{sample}", "abundance.h5"),
   params:
       outfolder = os.path.join(KALLISTO_DIR, "{sample}")
   log: os.path.join(LOG_DIR, 'kallisto_quant_{sample}.log')

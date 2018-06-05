@@ -36,7 +36,7 @@ rm ${tmp_settings} ${tmp_samplesheet}
 
 rm -rf ${testfolder}/trimmed_reads
 
-if ! test -f ${testfolder}/kallisto_output/HBR_Rep1/abundance.tsv
+if ! test -f ${testfolder}/kallisto_output/HBR_Rep1/abundance.h5
 then
   echo "ERROR: failed the kallisto quantification test"
   exit 1
