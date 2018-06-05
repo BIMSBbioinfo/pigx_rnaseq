@@ -174,6 +174,10 @@ targets = {
         'description': "Estimate transcript abundance using kallisto.",
         'files': expand(os.path.join(KALLISTO_DIR, "{sample}", "abundance.h5"), sample = SAMPLES)
     },
+    'kallisto_counts': {
+        'description': 'Get count matrix from kallisto quant.',
+        'files': [os.path.join(KALLISTO_DIR, "counts_from_KALLISTO.tsv")]
+    },
     'salmon_counts': {
         'description': "Get count matrix from SALMON quant.",
         'files': 
@@ -322,6 +326,15 @@ rule kallisto_quant:
     elif(len(input.reads) == 2):
         COMMAND = "{KALLISTO_EXEC} quant -i {input.index_file} -t {KALLISTO_QUANT_THREADS} -o {params.outfolder} --bias -g {GTF_FILE} {input.reads[0]} {input.reads[1]} >> {log} 2>&1"
     shell(COMMAND)
+
+rule counts_from_KALLISTO:
+  input: 
+      quantFiles = expand(os.path.join(KALLISTO_DIR, "{sample}", "abundance.h5"), sample=SAMPLES),
+      colDataFile = rules.translate_sample_sheet_for_report.output                  
+  output: 
+      os.path.join(KALLISTO_DIR, "counts_from_KALLISTO.tsv")
+  log: os.path.join(LOG_DIR, 'kallisto_import_counts.log')
+  shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/counts_matrix_from_KALLISTO.R {KALLISTO_DIR} {input.colDataFile} >> {log} 2>&1"
 
 rule salmon_quant: 
   input: 

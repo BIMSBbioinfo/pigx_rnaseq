@@ -97,6 +97,7 @@ AC_CONFIG_FILES([tests/test_salmon/test_salmon_quant.sh], [chmod +x tests/test_s
 AC_CONFIG_FILES([tests/test_salmon_counts/test.sh], [chmod +x tests/test_salmon_counts/test.sh])
 AC_CONFIG_FILES([tests/test_kallisto/test_kallisto_index.sh], [chmod +x tests/test_kallisto/test_kallisto_index.sh])
 AC_CONFIG_FILES([tests/test_kallisto/test_kallisto_quant.sh], [chmod +x tests/test_kallisto/test_kallisto_quant.sh])
+AC_CONFIG_FILES([tests/test_kallisto_counts/test.sh], [chmod +x tests/test_kallisto_counts/test.sh])
 AC_CONFIG_FILES([tests/test_fastqc/test.sh], [chmod +x tests/test_fastqc/test.sh])
 AC_CONFIG_FILES([tests/test_star_counts/test.sh], [chmod +x tests/test_star_counts/test.sh])
 AC_CONFIG_FILES([tests/test_multiqc/test.sh], [chmod +x tests/test_multiqc/test.sh])

@@ -242,6 +242,7 @@ TESTS = \
   tests/test_salmon/test_salmon_quant.sh				\
   tests/test_kallisto/test_kallisto_index.sh        \
   tests/test_kallisto/test_kallisto_quant.sh        \
+  tests/test_kallisto_counts/test.sh          \
   tests/test_star/test.sh						\
   tests/test_trim_galore/test.sh					\
   test.sh 

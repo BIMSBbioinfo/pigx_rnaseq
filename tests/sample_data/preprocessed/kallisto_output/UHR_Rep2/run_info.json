@@ -1,0 +1,13 @@
+{
+	"n_targets": 3655,
+	"n_bootstraps": 0,
+	"n_processed": 1208,
+	"n_pseudoaligned": 531,
+	"n_unique": 362,
+	"p_pseudoaligned": 44.0,
+	"p_unique": 30.0,
+	"kallisto_version": "0.44.0",
+	"index_version": 10,
+	"start_time": "Tue Jun  5 15:50:41 2018",
+	"call": "/home/jona/miniconda3/envs/pigx_rnaseq/bin/kallisto quant -i /home/jona/work/phd/pigx_rnaseq/tests/output/kallisto_index/transcripts.idx -t 8 -o /home/jona/work/phd/pigx_rnaseq/tests/output/kallisto_output/UHR_Rep2 --bias -g /home/jona/work/phd/pigx_rnaseq/tests/sample_data/sample.gtf /home/jona/work/phd/pigx_rnaseq/tests/output/trimmed_reads/UHR_Rep2_R1.fastq.gz /home/jona/work/phd/pigx_rnaseq/tests/output/trimmed_reads/UHR_Rep2_R2.fastq.gz"
+}
