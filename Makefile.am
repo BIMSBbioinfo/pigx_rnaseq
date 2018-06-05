@@ -13,6 +13,7 @@ dist_pkglibexec_scripts_SCRIPTS =					\
   scripts/translate_sample_sheet_for_report.R		\
   scripts/deseqReport.Rmd		\
   scripts/counts_matrix_from_SALMON.R		\
+  scripts/counts_matrix_from_KALLISTO.R   \
   scripts/validate_input.py
 
 dist_pkgdata_DATA =									\
@@ -224,6 +225,12 @@ EXTRA_DIST =										\
   tests/sample_data/preprocessed/salmon_output/UHR_Rep1/cmd_info.json \
   tests/sample_data/preprocessed/salmon_output/UHR_Rep1/libParams/flenDist.txt \
   tests/sample_data/preprocessed/salmon_output/UHR_Rep1/lib_format_counts.json \
+  tests/sample_data/preprocessed/kallisto_output/HBR_Rep1/abundance.h5 \
+  tests/sample_data/preprocessed/kallisto_output/HBR_Rep2/abundance.h5 \
+  tests/sample_data/preprocessed/kallisto_output/HBR_Rep3/abundance.h5 \
+  tests/sample_data/preprocessed/kallisto_output/UHR_Rep1/abundance.h5 \
+  tests/sample_data/preprocessed/kallisto_output/UHR_Rep2/abundance.h5 \
+  tests/sample_data/preprocessed/kallisto_output/UHR_Rep3/abundance.h5 \
   tests/test_trim_galore/input_files/sample.read1.fastq.gz \
   tests/test_trim_galore/input_files/sample.read2.fastq.gz \
   tests/settings.yaml \

@@ -118,7 +118,8 @@ targets = {
 	  expand(os.path.join(BEDGRAPH_DIR, '{sample}.bedgraph'), sample = SAMPLES) +  
           expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.star.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) + 
           expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) + 
-          expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+          expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
+          expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.kallisto.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     }, 
     'deseq_report_star': {
         'description': "Produce one HTML report for each analysis based on STAR results.",
@@ -454,8 +455,19 @@ rule report3:
     os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.genes.deseq.report.html')
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.genes' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' >> {log} 2>&1"
 
-
-
-
-
-
+rule report4:
+  input:
+    counts=os.path.join(KALLISTO_DIR, "counts_from_KALLISTO.tsv"),
+    coldata=str(rules.translate_sample_sheet_for_report.output)
+  params:
+    outdir=os.path.join(OUTPUT_DIR, "report"),
+    reportR=os.path.join(SCRIPTS_DIR, "runDeseqReport.R"),
+    reportRmd=os.path.join(SCRIPTS_DIR, "deseqReport.Rmd"),
+    case = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['case_sample_groups'],
+    control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
+    covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
+    logo = os.path.join(config['locations']['pkgdatadir'], "images/Logo_PiGx.png") if os.getenv("PIGX_UNINSTALLED") else os.path.join(config['locations']['pkgdatadir'], "Logo_PiGx.png")
+  log: os.path.join(LOG_DIR, "{analysis}.report.kallisto.log")
+  output:
+    os.path.join(OUTPUT_DIR, "report", '{analysis}.kallisto.deseq.report.html')
+  shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.kallisto' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' >> {log} 2>&1"
