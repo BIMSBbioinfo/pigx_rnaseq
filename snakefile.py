@@ -114,7 +114,7 @@ targets = {
         'description': "Produce a comprehensive report.  This is the default target.",
         'files':
       [os.path.join(OUTPUT_DIR, 'star_index', "SAindex"),
-            os.path.join(OUTPUT_DIR, 'salmon_index', "sa.bin"),
+            os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin"),
             os.path.join(MULTIQC_DIR, 'multiqc_report.html')] +
 	  [os.path.join(COUNTS_DIR, "raw_counts", "counts_from_SALMON.transcripts.tsv"),
             os.path.join(COUNTS_DIR, "raw_counts", "counts_from_SALMON.genes.tsv"),
@@ -168,7 +168,7 @@ targets = {
     'salmon_index' : {
         'description': "Create SALMON index file.",
         'files':
-          [os.path.join(OUTPUT_DIR, 'salmon_index', "sa.bin")]
+          [os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin")]
     },
     'salmon_quant' : {
         'description': "Calculate read counts per transcript using SALMON.",
@@ -322,7 +322,7 @@ rule salmon_index:
   input:
       CDNA_FASTA
   output:
-      salmon_index_file = os.path.join(OUTPUT_DIR, 'salmon_index', "sa.bin")
+      salmon_index_file = os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin")
   params:
       salmon_index_dir = os.path.join(OUTPUT_DIR, 'salmon_index')
   log: os.path.join(LOG_DIR, 'salmon_index.log')
