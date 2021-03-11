@@ -2,7 +2,7 @@
 #
 # Copyright © 2017, 2018 Bora Uyar <bora.uyar@mdc-berlin.de>
 # Copyright © 2017, 2018 Jonathan Ronen <yablee@gmail.com>
-# Copyright © 2017-2020 Ricardo Wurmus <ricardo.wurmus@mdc-berlin.de>
+# Copyright © 2017-2021 Ricardo Wurmus <ricardo.wurmus@mdc-berlin.de>
 #
 # This file is part of the PiGx RNAseq Pipeline.
 #
@@ -65,20 +65,19 @@ def tool(name):
 
 FASTQC_EXEC  = tool('fastqc')
 MULTIQC_EXEC = tool('multiqc')
-STAR_EXEC_MAP    = tool('star_map')
-STAR_EXEC_INDEX  = tool('star_index')
+HISAT2_EXEC        = tool('hisat2')
+HISAT2_BUILD_EXEC  = tool('hisat2-build')
 SALMON_INDEX_EXEC  = tool('salmon_index')
 SALMON_QUANT_EXEC  = tool('salmon_quant')
 TRIM_GALORE_EXEC = tool('trim-galore')
 SAMTOOLS_EXEC    = tool('samtools')
 HTSEQ_COUNT_EXEC = tool('htseq-count')
-GUNZIP_EXEC      = tool('gunzip')
 RSCRIPT_EXEC     = tool('Rscript')
 SED_EXEC = tool('sed')
 
-STAR_INDEX_THREADS   = config['execution']['rules']['star_index']['threads']
+HISAT2_BUILD_THREADS = config['execution']['rules']['hisat2-build']['threads']
+HISAT2_THREADS       = config['execution']['rules']['hisat2']['threads']
 SALMON_INDEX_THREADS = config['execution']['rules']['salmon_index']['threads']
-STAR_MAP_THREADS     = config['execution']['rules']['star_map']['threads']
 SALMON_QUANT_THREADS = config['execution']['rules']['salmon_quant']['threads']
 
 
@@ -120,26 +119,26 @@ targets = {
     'final-report': {
         'description': "Produce a comprehensive report.  This is the default target.",
         'files':
-      [os.path.join(OUTPUT_DIR, 'star_index', "SAindex"),
+      [os.path.join(OUTPUT_DIR, 'genome_index', f"{ORGANISM}_index.1.ht2l"),
             os.path.join(OUTPUT_DIR, 'salmon_index', "sa.bin"),
             os.path.join(MULTIQC_DIR, 'multiqc_report.html')] +
 	  [os.path.join(COUNTS_DIR, "raw_counts", "counts_from_SALMON.transcripts.tsv"),
             os.path.join(COUNTS_DIR, "raw_counts", "counts_from_SALMON.genes.tsv"),
             os.path.join(COUNTS_DIR, "normalized", "TPM_counts_from_SALMON.transcripts.tsv"),
             os.path.join(COUNTS_DIR, "normalized", "TPM_counts_from_SALMON.genes.tsv"),
-            os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star.tsv"),
+            os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2.tsv"),
             os.path.join(COUNTS_DIR, "normalized", "deseq_normalized_counts.tsv",
             os.path.join(COUNTS_DIR, "normalized", "deseq_size_factors.txt"))] +
 	  expand(os.path.join(BIGWIG_DIR, '{sample}.forward.bigwig'), sample = SAMPLES) +
       expand(os.path.join(BIGWIG_DIR, '{sample}.reverse.bigwig'), sample = SAMPLES) +
-      expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.star.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
+      expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.hisat2.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
       expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
       expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
-    'deseq_report_star': {
-        'description': "Produce one HTML report for each analysis based on STAR results.",
+    'deseq_report_hisat2': {
+        'description': "Produce one HTML report for each analysis based on Hisat2 results.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.star.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+          expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.hisat2.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
     'deseq_report_salmon_transcripts': {
         'description': "Produce one HTML report for each analysis based on SALMON results at transcript level.",
@@ -151,15 +150,15 @@ targets = {
         'files':
           expand(os.path.join(OUTPUT_DIR, "report", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
-    'star_map' : {
-        'description': "Produce a STAR mapping results in BAM file format.",
+    'hisat2_map' : {
+        'description': "Produce Hisat2 mapping results in BAM file format.",
         'files':
           expand(os.path.join(MAPPED_READS_DIR, '{sample}_Aligned.sortedByCoord.out.bam'), sample = SAMPLES)
     },
-    'star_counts': {
-        'description': "Get count matrix from STAR mapping results using summarizeOverlaps.",
+    'hisat2_counts': {
+        'description': "Get count matrix from Hisat2 mapping results using summarizeOverlaps.",
         'files':
-          [os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star.tsv")]
+          [os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2.tsv")]
     },
     'genome_coverage': {
         'description': "Compute genome coverage values from BAM files - save in bigwig format",
@@ -192,7 +191,7 @@ targets = {
 	   os.path.join(COUNTS_DIR, "normalized", "TPM_counts_from_SALMON.genes.tsv")]
     },
     'multiqc': {
-        'description': "Get multiQC report based on STAR alignments and fastQC reports.",
+        'description': "Get multiQC report based on Hisat2 alignments and fastQC reports.",
         'files':
           [os.path.join(MULTIQC_DIR, 'multiqc_report.html')]
     }
@@ -275,14 +274,14 @@ rule trim_galore_se:
   shell: "{TRIM_GALORE_EXEC} -o {TRIMMED_READS_DIR} {input[0]} >> {log} 2>&1 && sleep 10 && mv {params.tmp} {output}"
 
 
-rule star_index:
+rule genome_index:
     input: GENOME_FASTA
     output:
-        star_index_file = os.path.join(OUTPUT_DIR, 'star_index', "SAindex")
+        [os.path.join(OUTPUT_DIR, "genome_index", f"{ORGANISM}_index.{n}.ht2l") for n in [1, 2, 3, 4, 5, 6, 7, 8]]
     params:
-        star_index_dir = os.path.join(OUTPUT_DIR, 'star_index')
-    log: os.path.join(LOG_DIR, 'star_index.log')
-    shell: "{STAR_EXEC_INDEX} --runMode genomeGenerate --runThreadN {STAR_INDEX_THREADS} --genomeDir {params.star_index_dir} --genomeFastaFiles {input} --sjdbGTFfile {GTF_FILE} >> {log} 2>&1"
+        index_directory = os.path.join(OUTPUT_DIR, "genome_index"),
+    log: os.path.join(LOG_DIR, 'genome_index.log')
+    shell: "{HISAT2_BUILD_EXEC} -f -p {HISAT2_BUILD_THREADS} --large-index {input} {params.index_directory}/{ORGANISM}_index >> {log} 2>&1"
 
 def map_input(args):
   sample = args[0]
@@ -292,20 +291,25 @@ def map_input(args):
   elif len(reads_files) == 1:
     return [os.path.join(TRIMMED_READS_DIR, "{sample}_R.fastq.gz".format(sample=sample))]
 
-rule star_map:
+# I cannot do function composition, so it's gotta be this awkward definition instead.
+def hisat2_file_arguments(args):
+  files = map_input(args)
+  if len(files) == 2:
+    return "-1 {} -2 {}".format(files[0], files[1])
+  elif len(files) == 1:
+    return "-U {}".format(files[0])
+
+rule genome_map:
   input:
-    # This rule really depends on the whole directory (see
-    # params.index_dir), but we can't register it as an input/output
-    # in its own right since Snakemake 5.
-    index_file = rules.star_index.output.star_index_file,
+    index_files = rules.genome_index.output,
     reads = map_input
   output:
     os.path.join(MAPPED_READS_DIR, '{sample}_Aligned.out.bam')
   params:
-    index_dir = rules.star_index.params.star_index_dir,
-    output_prefix=os.path.join(MAPPED_READS_DIR, '{sample}_')
-  log: os.path.join(LOG_DIR, 'star_map_{sample}.log')
-  shell: "{STAR_EXEC_MAP} --runThreadN {STAR_MAP_THREADS} --genomeDir {params.index_dir} --readFilesIn {input.reads} --readFilesCommand '{GUNZIP_EXEC} -c' --outSAMtype BAM Unsorted --outFileNamePrefix {params.output_prefix} >> {log} 2>&1"
+    index_dir = rules.genome_index.params.index_directory,
+    args = hisat2_file_arguments
+  log: os.path.join(LOG_DIR, 'genome_map_{sample}.log')
+  shell: "{HISAT2_EXEC} -x {params.index_dir}/{ORGANISM}_index -p {HISAT2_THREADS} -q -S {output} {params.args} >> {log} 2>&1"
 
 rule sort_bam:
   input: os.path.join(MAPPED_READS_DIR, '{sample}_Aligned.out.bam')
@@ -384,7 +388,7 @@ rule genomeCoverage:
 rule multiqc:
   input:
     salmon_output=expand(os.path.join(SALMON_DIR, "{sample}", "quant.sf"), sample = SAMPLES),
-    star_output=expand(os.path.join(MAPPED_READS_DIR, '{sample}_Aligned.sortedByCoord.out.bam'), sample=SAMPLES),
+    mapping_output=expand(os.path.join(MAPPED_READS_DIR, '{sample}_Aligned.sortedByCoord.out.bam'), sample=SAMPLES),
     fastqc_output=expand(os.path.join(FASTQC_DIR, '{sample}_Aligned.sortedByCoord.out_fastqc.zip'), sample=SAMPLES),
   output: os.path.join(MULTIQC_DIR, 'multiqc_report.html')
   log: os.path.join(LOG_DIR, 'multiqc.log')
@@ -414,10 +418,10 @@ rule collate_read_counts:
   input:
     expand(os.path.join(MAPPED_READS_DIR, "{sample}.read_counts.csv"), sample = SAMPLES)
   output:
-    os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star.tsv")
+    os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2.tsv")
   log: os.path.join(LOG_DIR, "collate_read_counts.log")
   params:
-    out_file = os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star.tsv"),
+    out_file = os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2.tsv"),
     script = os.path.join(SCRIPTS_DIR, "collate_read_counts.R")
   shell:
     "{RSCRIPT_EXEC} {params.script} {MAPPED_READS_DIR} {params.out_file} >> {log} 2>&1"
@@ -427,7 +431,7 @@ rule htseq_count:
   input: expand(os.path.join(MAPPED_READS_DIR, "{sample}_Aligned.sortedByCoord.out.bam"), sample = SAMPLES)
   output:
     stats_file = os.path.join(COUNTS_DIR, "raw_counts", "htseq_stats.txt"),
-    counts_file = os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star_htseq-count.txt")
+    counts_file = os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2_htseq-count.txt")
   log: os.path.join(LOG_DIR, "htseq-count.log")
   params:
     tmp_file = os.path.join(COUNTS_DIR, "raw_counts", "htseq_out.txt")
@@ -448,7 +452,7 @@ rule htseq_count:
 # deseq2
 rule norm_counts_deseq:
     input:
-        counts_file = os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star.tsv"),
+        counts_file = os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2.tsv"),
         colDataFile = rules.translate_sample_sheet_for_report.output
     output:
         size_factors = os.path.join(COUNTS_DIR, "normalized", "deseq_size_factors.txt"),
@@ -463,7 +467,7 @@ rule norm_counts_deseq:
 
 rule report1:
   input:
-    counts=os.path.join(COUNTS_DIR, "raw_counts", "counts_from_star.tsv"),
+    counts=os.path.join(COUNTS_DIR, "raw_counts", "counts_from_hisat2.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output),
   params:
     outdir=os.path.join(OUTPUT_DIR, "report"),
@@ -473,11 +477,11 @@ rule report1:
     control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
     covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
     logo = LOGO
-  log: os.path.join(LOG_DIR, "{analysis}.report.star.log")
+  log: os.path.join(LOG_DIR, "{analysis}.report.hisat2.log")
   output:
-    os.path.join(OUTPUT_DIR, "report", '{analysis}.star.deseq.report.html')
+    os.path.join(OUTPUT_DIR, "report", '{analysis}.hisat2.deseq.report.html')
   shell:
-    "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.star' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}'  --workdir={params.outdir} --organism='{ORGANISM}'  >> {log} 2>&1"
+    "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.hisat2' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}'  --workdir={params.outdir} --organism='{ORGANISM}'  >> {log} 2>&1"
 
 rule report2:
   input:

@@ -20,18 +20,16 @@ execution:
     __default__:
       threads: 1
       memory: 8G
-    star_index:
+    hisat2-build:
       threads: 2
-      memory: 32G
     salmon_index:
       threads: 8
       memory: 4G
     salmon_quant:
       threads: 8
       memory: 5G
-    star_map:
+    hisat2:
       threads: 2
-      memory: 16G
     genomeCoverage:
       threads: 1
       memory: 64G
@@ -83,23 +81,18 @@ counting:
   yield_size: 2000000 # how many reads to process at a time (this impacts memory consumption)
 
 tools:
-  gunzip:
-    executable: @GUNZIP@
-    args: ""
   fastqc:
     executable: @FASTQC@
     args: ""
   multiqc:
     executable: @MULTIQC@
     args: ""
-  star_map:
-    executable: @STAR@
+  hisat2:
+    executable: @HISAT2@
     args: ""
-  star_index:
-    executable: @STAR@
+  hisat2-build:
+    executable: @HISAT2_BUILD@
     args: ""
-    # If STAR gives an error then that error message is likely suggest the parameter to adjust.
-    # args: "--limitGenomeGenerateRAM 31000000000"
   trim-galore:
     executable: @TRIMGALORE@
     args: ""

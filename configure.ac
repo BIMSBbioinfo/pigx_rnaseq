@@ -33,15 +33,15 @@ AS_IF([test -z "$$1"],dnl
       ],dnl
       [AC_MSG_NOTICE([Using $$1 as $2 executable.])])])
 
-find_or_override_prog([GUNZIP],          [gunzip])
-find_or_override_prog([SED],          [sed])
+find_or_override_prog([SED],             [sed])
 find_or_override_prog([GNUBASH],         [bash])
 find_or_override_prog([SNAKEMAKE],       [snakemake])
 find_or_override_prog([PANDOC],          [pandoc])
 find_or_override_prog([PANDOC_CITEPROC], [pandoc-citeproc])
 find_or_override_prog([FASTQC],          [fastqc])
 find_or_override_prog([TRIMGALORE],      [trim_galore])
-find_or_override_prog([STAR],            [STAR])
+find_or_override_prog([HISAT2],          [hisat2])
+find_or_override_prog([HISAT2_BUILD],    [hisat2-build])
 find_or_override_prog([MULTIQC],         [multiqc])
 find_or_override_prog([HTSEQ_COUNT],     [htseq-count])
 
