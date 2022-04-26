@@ -29,6 +29,7 @@ dist_doc_DATA = 									\
   README.md
 
 EXTRA_DIST =										\
+  VERSION											\
   META.in											\
   tests/sample_sheet.csv							\
   tests/sample_data/sample.gtf						\
