@@ -116,8 +116,10 @@ execution:
       threads: 2
       memory: 8000
     index_bam:
+      threads: 2
       memory: 500
-    multiqc: 
+    multiqc:
+      threads: 2
       memory: 500
     coverage_bamCoverage:
       threads: 1
