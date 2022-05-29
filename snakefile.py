@@ -597,7 +597,7 @@ rule report2:
     control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
     covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
     selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained'],
-    logo = os.path.join(config['locations']['pkgdatadir'], "images/Logo_PiGx.png") if os.getenv("PIGX_UNINSTALLED") else os.path.join(config['locations']['pkgdatadir'], "Logo_PiGx.png")
+    logo = LOGO
   log: os.path.join(LOG_DIR, "salmon", "{analysis}.report.salmon.transcripts.log")
   output:
     os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html')
@@ -618,7 +618,7 @@ rule report3:
     control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
     covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
     selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained'],
-    logo = os.path.join(config['locations']['pkgdatadir'], "images/Logo_PiGx.png") if os.getenv("PIGX_UNINSTALLED") else os.path.join(config['locations']['pkgdatadir'], "Logo_PiGx.png")
+    logo = LOGO
   log: os.path.join(LOG_DIR, "salmon", "{analysis}.report.salmon.genes.log")
   output:
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html')
