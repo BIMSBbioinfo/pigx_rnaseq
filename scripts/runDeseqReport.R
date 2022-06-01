@@ -2,7 +2,7 @@
 #
 # Copyright © 2017 Bora Uyar <bora.uyar@mdc-berlin.de>
 # Copyright © 2018 Jonathan Ronen <yablee@gmail.com>
-# Copyright © 2018 Ricardo Wurmus <ricardo.wurmus@mdc-berlin.de>
+# Copyright © 2018, 2022 Ricardo Wurmus <ricardo.wurmus@mdc-berlin.de>
 #
 # This file is part of the PiGx RNAseq Pipeline.
 #
@@ -74,7 +74,10 @@ runReport <- function(reportFile,
                       logo,
                       selfContained = TRUE, 
                       quiet = FALSE) {
-  
+
+  # knitr 0.39 changed the default behavior.
+  options(knitr.graphics.rel_path = FALSE)
+
   outFile <- paste0(prefix, '.deseq.report.html')
 
   htmlwidgets::setWidgetIdSeed(1234)
