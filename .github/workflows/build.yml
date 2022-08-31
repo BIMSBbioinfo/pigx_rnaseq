@@ -1,0 +1,33 @@
+name: build
+on:
+  push:
+  pull_request:
+  schedule:
+    # weekly builds to make sure it works with the latest version of Guix
+    - cron: '39 3 * * 0'
+jobs:
+  build:
+    name: make distcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guix cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/guix
+          key: guix-cache-${{ github.sha }}
+          restore-keys: |
+            guix-cache-
+      - name: Install GNU Guix
+        uses: PromyLOPh/guix-install-action@v1.2.2
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Bootstrap
+        run: guix shell -m manifest.scm -- ./bootstrap.sh
+      - name: Configure
+        run: guix shell -m manifest.scm -- ./configure
+      - name: Build
+        run: guix shell -m manifest.scm -- make -j
+      - name: Distcheck
+        run: guix shell -m manifest.scm -- make distcheck
