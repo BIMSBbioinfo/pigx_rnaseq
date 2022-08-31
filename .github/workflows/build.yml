@@ -24,10 +24,10 @@ jobs:
         with:
           submodules: true
       - name: Bootstrap
-        run: guix shell -m manifest.scm -- ./bootstrap.sh
+        run: guix shell -D -f guix.scm -- ./bootstrap.sh
       - name: Configure
-        run: guix shell -m manifest.scm -- ./configure
+        run: guix shell -D -f guix.scm -- ./configure
       - name: Build
-        run: guix shell -m manifest.scm -- make -j
+        run: guix shell -D -f guix.scm -- make -j
       - name: Distcheck
-        run: guix shell -m manifest.scm -- make distcheck
+        run: guix shell -D -f guix.scm -- make distcheck
