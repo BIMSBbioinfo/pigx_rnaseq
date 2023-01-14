@@ -10,19 +10,39 @@ jobs:
     name: make distcheck
     runs-on: ubuntu-latest
     steps:
+      - name: Install GNU Guix
+        uses: PromyLOPh/guix-install-action@v1.3
+        with:
+          pullAfterInstall: false
+      - name: Describe Guix
+        run: echo "guix-commit=$(guix describe | grep commit | join -a1 -o1.2 - /dev/null)" >> $GITHUB_OUTPUT
+        id: guix-commit
       - name: Guix cache
-        uses: actions/cache@v2
+        id: guix-cache
+        uses: actions/cache@v3
         with:
           path: ~/.cache/guix
-          key: guix-cache-${{ github.sha }}
-          restore-keys: |
-            guix-cache-
-      - name: Install GNU Guix
-        uses: PromyLOPh/guix-install-action@v1.2.2
+          key: guix-cache-${{ steps.guix-commit.outputs.guix-commit }}
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: true
+      - name: Build Guix environment
+        if: steps.guix-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.cache/guix
+          guix environment -l guix.scm --root=env -- echo done
+          guix archive --export --recursive $(readlink -f env) > ~/.cache/guix/env
+          cp /etc/guix/signing-key.pub ~/.cache/guix/
+      - name: Authorize cached signing key
+        if: steps.guix-cache.outputs.cache-hit == 'true'
+        run: |
+          cat ~/.cache/guix/signing-key.pub | sudo guix archive --authorize
+      - name: Import Guix environment
+        if: steps.guix-cache.outputs.cache-hit == 'true'
+        run: |
+          du -sh ~/.cache/guix/env
+          cat ~/.cache/guix/env | sudo guix archive --import
       - name: Bootstrap
         run: guix shell -D -f guix.scm -- ./bootstrap.sh
       - name: Configure
@@ -30,4 +50,6 @@ jobs:
       - name: Build
         run: guix shell -D -f guix.scm -- make -j
       - name: Distcheck
+        env:
+          VERBOSE: "true"
         run: guix shell -D -f guix.scm -- make distcheck
