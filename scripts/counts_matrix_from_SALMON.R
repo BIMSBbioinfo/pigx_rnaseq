@@ -37,7 +37,11 @@ writeCounts <- function(colDataFile, salmon_output_folder, counts_dir, type) {
   names(files) <- rownames(colData)
   txi <- tximport::tximport(files, type = "salmon", txOut = TRUE)
   
-  dds <- DESeq2::DESeqDataSetFromTximport(txi, colData, ~group)
+  if(length(unique(colData$sample_type)) < 2) {
+    dds <- DESeq2::DESeqDataSetFromTximport(txi, colData, ~1)
+  } else {
+    dds <- DESeq2::DESeqDataSetFromTximport(txi, colData, ~group)
+  }
   
   #save raw counts
   write.table(x = DESeq2::counts(dds), 
