@@ -227,6 +227,9 @@ selected_targets = config['execution']['target'] or ['final-report']
 # sure that the targets really just return simple lists.
 from itertools import chain
 OUTPUT_FILES = list(chain.from_iterable([targets[name]['files'] for name in selected_targets]))
+# add annotation files for any target
+OUTPUT_FILES.append(os.path.join(OUTPUT_DIR, "annotations.tgz"))
+print(OUTPUT_FILES)
 
 rule all:
   input: OUTPUT_FILES
@@ -240,6 +243,22 @@ rule check_annotation_files:
     os.path.join(OUTPUT_DIR, 'input_annotation_stats.tsv')
   log: os.path.join(LOG_DIR, 'check_annotation_files.log')
   shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/validate_input_annotation.R {input.gtf} {input.cdna} {input.dna} {OUTPUT_DIR} >> {log} 2>&1"
+
+# save a copy of the annotation files in the results folder 
+# for later backwards compatibility
+rule record_annotation_files:
+  input: 
+    dna = GENOME_FASTA,
+    cdna = CDNA_FASTA,
+    gtf = GTF_FILE
+  output:
+    os.path.join(OUTPUT_DIR, "annotations.tgz")
+  log: os.path.join(LOG_DIR, "record_annotation_files.log")
+  shell: 
+    """
+    mkdir {OUTPUT_DIR}/annotations; cp {input.gtf} {input.cdna} {input.dna} {OUTPUT_DIR}/annotations 
+    tar -czvf annotations.tgz {OUTPUT_DIR}/annotations >> {log} 2>&1
+    """
 
 rule help:
   run:
