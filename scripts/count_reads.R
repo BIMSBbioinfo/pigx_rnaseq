@@ -40,7 +40,7 @@ require(GenomicAlignments)
 # define BAM file connection 
 bamfile <- Rsamtools::BamFile(file = bamFile,
                               asMates = !singleEnd,  
-                              yieldSize = 2000000)
+                              yieldSize = yieldSize)
 
 # check counting mode
 if(!counting_mode %in% c('Union', 'IntersectionStrict', 
