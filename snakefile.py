@@ -229,7 +229,6 @@ from itertools import chain
 OUTPUT_FILES = list(chain.from_iterable([targets[name]['files'] for name in selected_targets]))
 # add annotation files for any target
 OUTPUT_FILES.append(os.path.join(OUTPUT_DIR, "annotations.tgz"))
-print(OUTPUT_FILES)
 
 rule all:
   input: OUTPUT_FILES
