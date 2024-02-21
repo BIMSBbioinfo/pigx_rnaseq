@@ -135,7 +135,7 @@ targets = {
     'final-report': {
         'description': "Produce a comprehensive report.  This is the default target.",
         'files':
-        [os.path.join(OUTPUT_DIR, "input_annotation_stats.tsv"), 
+        [os.path.join(OUTPUT_DIR, "input_annotation_stats.tsv"),
          os.path.join(MULTIQC_DIR, 'multiqc_report.html'),
          os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.transcripts.tsv"),
          os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.genes.tsv"),
@@ -143,7 +143,10 @@ targets = {
          os.path.join(COUNTS_DIR, "normalized", "salmon", "TPM_counts_from_SALMON.genes.tsv"),
          os.path.join(COUNTS_DIR, "raw_counts", MAPPER, "counts.tsv"),
          os.path.join(COUNTS_DIR, "normalized", MAPPER, "deseq_normalized_counts.tsv"),
-         os.path.join(COUNTS_DIR, "normalized", MAPPER, "deseq_size_factors.txt")] +
+         os.path.join(COUNTS_DIR, "normalized", MAPPER, "deseq_size_factors.txt"),
+         os.path.join(OUTPUT_DIR, "report", MAPPER, "collated.deseq_results.tsv"),
+         os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.transcripts.deseq_results.tsv"),
+         os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.genes.deseq_results.tsv")] +
         BIGWIG_OUTPUT +
         expand(os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
         expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
@@ -152,22 +155,26 @@ targets = {
     'deseq_report_star': {
         'description': "Produce one HTML report for each analysis based on STAR results.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", 'star', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+          expand(os.path.join(OUTPUT_DIR, "report", 'star', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
+          [os.path.join(OUTPUT_DIR, "report", 'star', "collated.deseq_results.tsv")]
     },
     'deseq_report_hisat2': {
         'description': "Produce one HTML report for each analysis based on Hisat2 results.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", 'hisat2', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+          expand(os.path.join(OUTPUT_DIR, "report", 'hisat2', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
+          [os.path.join(OUTPUT_DIR, "report", 'hisat2', "collated.deseq_results.tsv")]
     },
     'deseq_report_salmon_transcripts': {
         'description': "Produce one HTML report for each analysis based on SALMON results at transcript level.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+          expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
+          [os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.transcripts.deseq_results.tsv")]
     },
     'deseq_report_salmon_genes': {
         'description': "Produce one HTML report for each analysis based on SALMON results at gene level.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+          expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
+          [os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.genes.deseq_results.tsv")]
     },
     'star_map' : {
         'description': "Produce a STAR mapping results in BAM file format.",
@@ -231,7 +238,8 @@ OUTPUT_FILES = list(chain.from_iterable([targets[name]['files'] for name in sele
 OUTPUT_FILES.append(os.path.join(OUTPUT_DIR, "annotations.tgz"))
 
 rule all:
-  input: OUTPUT_FILES
+  input:
+    OUTPUT_FILES,
 
 rule check_annotation_files:
   input: 
@@ -561,7 +569,7 @@ rule collate_read_counts:
     "{RSCRIPT_EXEC} {params.script} {params.mapped_dir} {input.colDataFile} {output} >> {log} 2>&1"
 
 # create a normalized counts table including all samples
-# using the median-of-ratios normalization procedure of
+# using the median-of-ratios normalization procedure ofcollate_deseq_results.R
 # deseq2
 rule norm_counts_deseq:
     input:
@@ -596,11 +604,29 @@ rule report1:
     logo = LOGO
   log: os.path.join(LOG_DIR, MAPPER, "{analysis}.report.log")
   output:
-    os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html')
+    os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'),
+    os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq_results.tsv')
   resources:
     mem_mb = config['execution']['rules']['reports']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}'  --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
+
+rule deseq_collate_report1:
+  input:
+    html_reports=expand(os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()),
+    deseq_results=expand(os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq_results.tsv'), analysis = DE_ANALYSIS_LIST.keys())
+  params:
+    mapper=MAPPER,
+    outdir=os.path.join(OUTPUT_DIR, "report", MAPPER),
+    inpdir=os.path.join(OUTPUT_DIR, "report", MAPPER),
+    script=os.path.join(SCRIPTS_DIR, "collate_deseq_results.R"),
+  log: os.path.join(LOG_DIR, MAPPER, "collate_deseq.report.log")
+  output:
+    os.path.join(OUTPUT_DIR, "report", MAPPER, 'collated.deseq_results.tsv')
+  resources:
+    mem_mb = config['execution']['rules']['reports']['memory']
+  shell:
+    "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
 
 rule report2:
   input:
@@ -618,10 +644,28 @@ rule report2:
     logo = LOGO
   log: os.path.join(LOG_DIR, "salmon", "{analysis}.report.salmon.transcripts.log")
   output:
-    os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html')
+    os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'),
+    os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.transcripts.deseq_results.tsv')
   resources:
     mem_mb = config['execution']['rules']['reports']['memory']
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.transcripts' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
+
+rule deseq_collate_report2:
+  input:
+    html_reports=expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()),
+    deseq_results=expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.transcripts.deseq_results.tsv'), analysis = DE_ANALYSIS_LIST.keys())
+  params:
+    mapper="transcripts",
+    outdir=os.path.join(OUTPUT_DIR, "report", 'salmon'),
+    inpdir=os.path.join(OUTPUT_DIR, "report", 'salmon'),
+    script=os.path.join(SCRIPTS_DIR, "collate_deseq_results.R"),
+  log: os.path.join(LOG_DIR, "salmon", "collate_transcripts_deseq.report.log")
+  output:
+    os.path.join(OUTPUT_DIR, "report", 'salmon', 'collated.transcripts.deseq_results.tsv')
+  resources:
+    mem_mb = config['execution']['rules']['reports']['memory']
+  shell:
+    "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
 
 rule report3:
   input:
@@ -639,7 +683,25 @@ rule report3:
     logo = LOGO
   log: os.path.join(LOG_DIR, "salmon", "{analysis}.report.salmon.genes.log")
   output:
-    os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html')
+    os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'),
+    os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq_results.tsv')
   resources:
     mem_mb = config['execution']['rules']['reports']['memory']
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.genes' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
+
+rule deseq_collate_report3:
+  input:
+    html_reports=expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()),
+    deseq_results=expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq_results.tsv'), analysis = DE_ANALYSIS_LIST.keys())
+  params:
+    mapper="genes",
+    outdir=os.path.join(OUTPUT_DIR, "report", 'salmon'),
+    inpdir=os.path.join(OUTPUT_DIR, "report", 'salmon'),
+    script=os.path.join(SCRIPTS_DIR, "collate_deseq_results.R"),
+  log: os.path.join(LOG_DIR, "salmon", "collate_genes_deseq.report.log")
+  output:
+    os.path.join(OUTPUT_DIR, "report", 'salmon', 'collated.genes.deseq_results.tsv')
+  resources:
+    mem_mb = config['execution']['rules']['reports']['memory']
+  shell:
+    "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
