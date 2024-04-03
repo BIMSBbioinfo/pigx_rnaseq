@@ -136,7 +136,22 @@ execution:
     check_annotation_files: 
       threads: 1
       memory: 16000
-    reports:
+    report1:
+      threads: 1
+      memory: 4000  
+    deseq_collate_report1:
+      threads: 1
+      memory: 4000  
+    report2:
+      threads: 1
+      memory: 4000  
+    deseq_collate_report2:
+      threads: 1
+      memory: 4000  
+    report3:
+      threads: 1
+      memory: 4000  
+    deseq_collate_report3:
       threads: 1
       memory: 4000  
 

@@ -607,7 +607,7 @@ rule report1:
     os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'),
     os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['report1']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}'  --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
 
@@ -624,7 +624,7 @@ rule deseq_collate_report1:
   output:
     os.path.join(OUTPUT_DIR, "report", MAPPER, 'collated.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['deseq_collate_report1']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
 
@@ -647,7 +647,7 @@ rule report2:
     os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'),
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.transcripts.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['report2']['memory']
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.transcripts' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
 
 rule deseq_collate_report2:
@@ -663,7 +663,7 @@ rule deseq_collate_report2:
   output:
     os.path.join(OUTPUT_DIR, "report", 'salmon', 'collated.transcripts.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['deseq_collate_report2']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
 
@@ -686,7 +686,7 @@ rule report3:
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'),
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['report3']['memory']
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.genes' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
 
 rule deseq_collate_report3:
@@ -702,6 +702,6 @@ rule deseq_collate_report3:
   output:
     os.path.join(OUTPUT_DIR, "report", 'salmon', 'collated.genes.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['deseq_collate_report3']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
