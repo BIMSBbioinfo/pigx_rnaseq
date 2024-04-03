@@ -324,7 +324,7 @@ rule trim_qc_reads_pe:
     html=os.path.join(QC_DIR, "{sample}.pe.fastp.html"),
     json=os.path.join(QC_DIR, "{sample}.pe.fastp.json") #notice that multiqc recognizes files ending with fast.json
   resources:
-    mem_mb = config['execution']['rules']['trim_qc_reads']['memory']
+    mem_mb = config['execution']['rules']['trim_qc_reads_pe']['memory']
   log: os.path.join(LOG_DIR, 'trim_reads.{sample}.log')
   shell: "{FASTP_EXEC} --in1 {input[0]} --in2 {input[1]} --out1 {output.r1} --out2 {output.r2} -h {output.html} -j {output.json} >> {log} 2>&1"
 
@@ -336,7 +336,7 @@ rule trim_qc_reads_se:
     html=os.path.join(QC_DIR, "{sample}.se.fastp.html"),
     json=os.path.join(QC_DIR, "{sample}.se.fastp.json") #notice that multiqc recognizes files ending with fast.json
   resources:
-    mem_mb = config['execution']['rules']['trim_qc_reads']['memory']
+    mem_mb = config['execution']['rules']['trim_qc_reads_se']['memory']
   log: os.path.join(LOG_DIR, 'trim_reads.{sample}.log')
   shell: "{FASTP_EXEC} --in1 {input[0]} --out1 {output.r} -h {output.html} -j {output.json} >> {log} 2>&1 "
 

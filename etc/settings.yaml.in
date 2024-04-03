@@ -85,7 +85,10 @@ execution:
     translate_sample_sheet_for_report:
       threads: 1
       memory: 500
-    trim_qc_reads:
+    trim_qc_reads_pe:
+      threads: 1
+      memory: 4000
+    trim_qc_reads_se:
       threads: 1
       memory: 4000
     star_index:
