@@ -81,8 +81,8 @@ BAMCOVERAGE_EXEC = tool('bamCoverage')
 MEGADEPTH_EXEC = tool('megadepth')
 
 STAR_INDEX_THREADS   = config['execution']['rules']['star_index']['threads']
-HISAT2_BUILD_THREADS = config['execution']['rules']['hisat2-build']['threads']
-HISAT2_THREADS       = config['execution']['rules']['hisat2']['threads']
+HISAT2_BUILD_THREADS = config['execution']['rules']['hisat2_index']['threads']
+HISAT2_THREADS       = config['execution']['rules']['hisat2_map']['threads']
 STAR_MAP_THREADS     = config['execution']['rules']['star_map']['threads']
 SALMON_INDEX_THREADS = config['execution']['rules']['salmon_index']['threads']
 SALMON_QUANT_THREADS = config['execution']['rules']['salmon_quant']['threads']
@@ -360,7 +360,7 @@ rule hisat2_index:
     output:
         [os.path.join(OUTPUT_DIR, "hisat2_index", f"{GENOME_BUILD}_index.{n}.ht2l") for n in [1, 2, 3, 4, 5, 6, 7, 8]]
     resources:
-        mem_mb = config['execution']['rules']['hisat2-build']['memory']
+        mem_mb = config['execution']['rules']['hisat2_index']['memory']
     params:
         index_directory = os.path.join(OUTPUT_DIR, "hisat2_index"),
     log: os.path.join(LOG_DIR, 'hisat2_index.log')
@@ -406,7 +406,7 @@ rule hisat2_map:
   output:
     os.path.join(MAPPED_READS_DIR, 'hisat2', '{sample}_Aligned.sortedByCoord.out.bam')
   resources:
-    mem_mb = config['execution']['rules']['hisat2']['memory']
+    mem_mb = config['execution']['rules']['hisat2_map']['memory']
   params:
     samfile = lambda wildcards: os.path.join(MAPPED_READS_DIR, 'hisat2', "_".join([wildcards.sample, 'Aligned.out.sam'])),
     index_dir = rules.hisat2_index.params.index_directory,

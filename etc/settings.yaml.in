@@ -94,7 +94,7 @@ execution:
     star_index:
       threads: 2
       memory: 32000
-    hisat2-build:
+    hisat2_index:
       threads: 2 
       memory: 32000
     salmon_index:
@@ -115,7 +115,7 @@ execution:
     star_map:
       threads: 2
       memory: 16000
-    hisat2:
+    hisat2_map:
       threads: 2
       memory: 8000
     index_bam:
