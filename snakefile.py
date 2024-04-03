@@ -476,7 +476,7 @@ rule counts_from_SALMON:
       os.path.join(COUNTS_DIR, "normalized", "salmon", "TPM_counts_from_SALMON.transcripts.tsv"),
       os.path.join(COUNTS_DIR, "normalized", "salmon", "TPM_counts_from_SALMON.genes.tsv")
   resources:
-      mem_mb = config['execution']['rules']['counts_from_salmon']['memory']
+      mem_mb = config['execution']['rules']['counts_from_SALMON']['memory']
   log: os.path.join(LOG_DIR, "salmon", 'salmon_import_counts.log')
   shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/counts_matrix_from_SALMON.R {SALMON_DIR} {COUNTS_DIR} {input.colDataFile} >> {log} 2>&1"
 
