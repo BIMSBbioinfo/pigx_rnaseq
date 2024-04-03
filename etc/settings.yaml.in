@@ -85,13 +85,16 @@ execution:
     translate_sample_sheet_for_report:
       threads: 1
       memory: 500
-    trim_qc_reads:
+    trim_qc_reads_pe:
+      threads: 1
+      memory: 4000
+    trim_qc_reads_se:
       threads: 1
       memory: 4000
     star_index:
       threads: 2
       memory: 32000
-    hisat2-build:
+    hisat2_index:
       threads: 2 
       memory: 32000
     salmon_index:
@@ -100,7 +103,7 @@ execution:
     salmon_quant:
       threads: 8
       memory: 6000
-    counts_from_salmon: 
+    counts_from_SALMON: 
       threads: 1
       memory: 200
     collate_read_counts:
@@ -112,7 +115,7 @@ execution:
     star_map:
       threads: 2
       memory: 16000
-    hisat2:
+    hisat2_map:
       threads: 2
       memory: 8000
     index_bam:
@@ -133,7 +136,22 @@ execution:
     check_annotation_files: 
       threads: 1
       memory: 16000
-    reports:
+    report1:
+      threads: 1
+      memory: 4000  
+    deseq_collate_report1:
+      threads: 1
+      memory: 4000  
+    report2:
+      threads: 1
+      memory: 4000  
+    deseq_collate_report2:
+      threads: 1
+      memory: 4000  
+    report3:
+      threads: 1
+      memory: 4000  
+    deseq_collate_report3:
       threads: 1
       memory: 4000  
 

@@ -81,8 +81,8 @@ BAMCOVERAGE_EXEC = tool('bamCoverage')
 MEGADEPTH_EXEC = tool('megadepth')
 
 STAR_INDEX_THREADS   = config['execution']['rules']['star_index']['threads']
-HISAT2_BUILD_THREADS = config['execution']['rules']['hisat2-build']['threads']
-HISAT2_THREADS       = config['execution']['rules']['hisat2']['threads']
+HISAT2_BUILD_THREADS = config['execution']['rules']['hisat2_index']['threads']
+HISAT2_THREADS       = config['execution']['rules']['hisat2_map']['threads']
 STAR_MAP_THREADS     = config['execution']['rules']['star_map']['threads']
 SALMON_INDEX_THREADS = config['execution']['rules']['salmon_index']['threads']
 SALMON_QUANT_THREADS = config['execution']['rules']['salmon_quant']['threads']
@@ -324,7 +324,7 @@ rule trim_qc_reads_pe:
     html=os.path.join(QC_DIR, "{sample}.pe.fastp.html"),
     json=os.path.join(QC_DIR, "{sample}.pe.fastp.json") #notice that multiqc recognizes files ending with fast.json
   resources:
-    mem_mb = config['execution']['rules']['trim_qc_reads']['memory']
+    mem_mb = config['execution']['rules']['trim_qc_reads_pe']['memory']
   log: os.path.join(LOG_DIR, 'trim_reads.{sample}.log')
   shell: "{FASTP_EXEC} --in1 {input[0]} --in2 {input[1]} --out1 {output.r1} --out2 {output.r2} -h {output.html} -j {output.json} >> {log} 2>&1"
 
@@ -336,7 +336,7 @@ rule trim_qc_reads_se:
     html=os.path.join(QC_DIR, "{sample}.se.fastp.html"),
     json=os.path.join(QC_DIR, "{sample}.se.fastp.json") #notice that multiqc recognizes files ending with fast.json
   resources:
-    mem_mb = config['execution']['rules']['trim_qc_reads']['memory']
+    mem_mb = config['execution']['rules']['trim_qc_reads_se']['memory']
   log: os.path.join(LOG_DIR, 'trim_reads.{sample}.log')
   shell: "{FASTP_EXEC} --in1 {input[0]} --out1 {output.r} -h {output.html} -j {output.json} >> {log} 2>&1 "
 
@@ -360,7 +360,7 @@ rule hisat2_index:
     output:
         [os.path.join(OUTPUT_DIR, "hisat2_index", f"{GENOME_BUILD}_index.{n}.ht2l") for n in [1, 2, 3, 4, 5, 6, 7, 8]]
     resources:
-        mem_mb = config['execution']['rules']['hisat2-build']['memory']
+        mem_mb = config['execution']['rules']['hisat2_index']['memory']
     params:
         index_directory = os.path.join(OUTPUT_DIR, "hisat2_index"),
     log: os.path.join(LOG_DIR, 'hisat2_index.log')
@@ -406,7 +406,7 @@ rule hisat2_map:
   output:
     os.path.join(MAPPED_READS_DIR, 'hisat2', '{sample}_Aligned.sortedByCoord.out.bam')
   resources:
-    mem_mb = config['execution']['rules']['hisat2']['memory']
+    mem_mb = config['execution']['rules']['hisat2_map']['memory']
   params:
     samfile = lambda wildcards: os.path.join(MAPPED_READS_DIR, 'hisat2', "_".join([wildcards.sample, 'Aligned.out.sam'])),
     index_dir = rules.hisat2_index.params.index_directory,
@@ -476,7 +476,7 @@ rule counts_from_SALMON:
       os.path.join(COUNTS_DIR, "normalized", "salmon", "TPM_counts_from_SALMON.transcripts.tsv"),
       os.path.join(COUNTS_DIR, "normalized", "salmon", "TPM_counts_from_SALMON.genes.tsv")
   resources:
-      mem_mb = config['execution']['rules']['counts_from_salmon']['memory']
+      mem_mb = config['execution']['rules']['counts_from_SALMON']['memory']
   log: os.path.join(LOG_DIR, "salmon", 'salmon_import_counts.log')
   shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/counts_matrix_from_SALMON.R {SALMON_DIR} {COUNTS_DIR} {input.colDataFile} >> {log} 2>&1"
 
@@ -607,7 +607,7 @@ rule report1:
     os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'),
     os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['report1']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}'  --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
 
@@ -624,7 +624,7 @@ rule deseq_collate_report1:
   output:
     os.path.join(OUTPUT_DIR, "report", MAPPER, 'collated.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['deseq_collate_report1']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
 
@@ -647,7 +647,7 @@ rule report2:
     os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'),
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.transcripts.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['report2']['memory']
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.transcripts' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
 
 rule deseq_collate_report2:
@@ -663,7 +663,7 @@ rule deseq_collate_report2:
   output:
     os.path.join(OUTPUT_DIR, "report", 'salmon', 'collated.transcripts.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['deseq_collate_report2']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
 
@@ -686,7 +686,7 @@ rule report3:
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'),
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['report3']['memory']
   shell: "{RSCRIPT_EXEC} {params.reportR} --logo={params.logo} --prefix='{wildcards.analysis}.salmon.genes' --reportFile={params.reportRmd} --countDataFile={input.counts} --colDataFile={input.coldata} --gtfFile={GTF_FILE} --caseSampleGroups='{params.case}' --controlSampleGroups='{params.control}' --covariates='{params.covariates}' --workdir={params.outdir} --organism='{ORGANISM}' --description='{params.description}' --selfContained='{params.selfContained}' >> {log} 2>&1"
 
 rule deseq_collate_report3:
@@ -702,6 +702,6 @@ rule deseq_collate_report3:
   output:
     os.path.join(OUTPUT_DIR, "report", 'salmon', 'collated.genes.deseq_results.tsv')
   resources:
-    mem_mb = config['execution']['rules']['reports']['memory']
+    mem_mb = config['execution']['rules']['deseq_collate_report3']['memory']
   shell:
     "{RSCRIPT_EXEC} {params.script} {params.mapper} {params.inpdir} {params.outdir} >> {log} 2>&1"
