@@ -103,7 +103,7 @@ execution:
     salmon_quant:
       threads: 8
       memory: 6000
-    counts_from_salmon: 
+    counts_from_SALMON: 
       threads: 1
       memory: 200
     collate_read_counts:
