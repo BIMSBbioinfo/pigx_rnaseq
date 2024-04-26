@@ -125,6 +125,16 @@ elif config['coverage']['tool'] == 'megadepth':
   BIGWIG_OUTPUT = expand(os.path.join(BIGWIG_DIR, MAPPER, 'megadepth', '{sample}.all.bw'), sample = SAMPLES)
 else:
   sys.exit("Error with the selected coverage computation method: Allowed options for coverage computation are 'megadepth' or 'bamCoverage'; check the settings file option under coverage->tool.")
+
+COLLATED_OUTPUT = []
+if DE_ANALYSIS_LIST:
+  repmap = expand(os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+  reptra = expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+  repgen = expand(os.path.join(OUTPUT_DIR, "report",  'salmon', '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+  collst = [os.path.join(OUTPUT_DIR, "report", MAPPER, "collated.deseq_results.tsv"),
+           os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.transcripts.deseq_results.tsv"),
+           os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.genes.deseq_results.tsv")]
+  COLLATED_OUTPUT = repmap + reptra + repgen + collst
   
 targets = {
     # rule to print all rule descriptions
@@ -143,38 +153,29 @@ targets = {
          os.path.join(COUNTS_DIR, "normalized", "salmon", "TPM_counts_from_SALMON.genes.tsv"),
          os.path.join(COUNTS_DIR, "raw_counts", MAPPER, "counts.tsv"),
          os.path.join(COUNTS_DIR, "normalized", MAPPER, "deseq_normalized_counts.tsv"),
-         os.path.join(COUNTS_DIR, "normalized", MAPPER, "deseq_size_factors.txt"),
-         os.path.join(OUTPUT_DIR, "report", MAPPER, "collated.deseq_results.tsv"),
-         os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.transcripts.deseq_results.tsv"),
-         os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.genes.deseq_results.tsv")] +
+         os.path.join(COUNTS_DIR, "normalized", MAPPER, "deseq_size_factors.txt")] +
         BIGWIG_OUTPUT +
-        expand(os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
-        expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
-        expand(os.path.join(OUTPUT_DIR, "report",  'salmon', '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
+        COLLATED_OUTPUT
     },
     'deseq_report_star': {
         'description': "Produce one HTML report for each analysis based on STAR results.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", 'star', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
-          [os.path.join(OUTPUT_DIR, "report", 'star', "collated.deseq_results.tsv")]
+          expand(os.path.join(OUTPUT_DIR, "report", 'star', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
     'deseq_report_hisat2': {
         'description': "Produce one HTML report for each analysis based on Hisat2 results.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", 'hisat2', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
-          [os.path.join(OUTPUT_DIR, "report", 'hisat2', "collated.deseq_results.tsv")]
+          expand(os.path.join(OUTPUT_DIR, "report", 'hisat2', '{analysis}.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
     'deseq_report_salmon_transcripts': {
         'description': "Produce one HTML report for each analysis based on SALMON results at transcript level.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
-          [os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.transcripts.deseq_results.tsv")]
+          expand(os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
     'deseq_report_salmon_genes': {
         'description': "Produce one HTML report for each analysis based on SALMON results at gene level.",
         'files':
-          expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys()) +
-          [os.path.join(OUTPUT_DIR, "report", 'salmon', "collated.genes.deseq_results.tsv")]
+          expand(os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'), analysis = DE_ANALYSIS_LIST.keys())
     },
     'star_map' : {
         'description': "Produce a STAR mapping results in BAM file format.",
