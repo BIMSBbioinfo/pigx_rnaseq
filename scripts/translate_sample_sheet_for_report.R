@@ -28,5 +28,5 @@ s = data.frame(data.table::fread(sample_sheet), check.names = F)
 rownames(s) = s$name
 s$group = s$sample_type
 s = s[colnames(s)[-grep("name|reads", colnames(s))]]
-write.table(s, "colData.tsv", sep="\t")
+write.table(s, "", sep="\t")
 

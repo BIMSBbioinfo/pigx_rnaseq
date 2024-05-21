@@ -305,8 +305,8 @@ onsuccess:
 
 rule translate_sample_sheet_for_report:
   input: SAMPLE_SHEET_FILE
-  output: os.path.join(os.getcwd(), "colData.tsv")
-  shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/translate_sample_sheet_for_report.R {input}"
+  output: os.path.join(OUTPUT_DIR, "colData.tsv")
+  shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/translate_sample_sheet_for_report.R {input} > {output}"
 
 # determine if the sample library is single end or paired end
 def isSingleEnd(args):
