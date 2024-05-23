@@ -456,7 +456,8 @@ rule salmon_quant:
       reads = map_input
   output:
       os.path.join(SALMON_DIR, "{sample}", "quant.sf"),
-      os.path.join(SALMON_DIR, "{sample}", "quant.genes.sf")
+      os.path.join(SALMON_DIR, "{sample}", "quant.genes.sf"),
+      salmon_quant_tar = os.path.join(OUTPUT_DIR, "{sample}", "salmon-quant.tar")
   resources:
       mem_mb = config['execution']['rules']['salmon_quant']['memory']
   params:
@@ -482,9 +483,8 @@ mv {output.salmon_quant_tar}.temp {output.salmon_quant_tar}) >> {log} 2>&1"
 
 rule counts_from_SALMON:
   input:
-      quantFiles = expand(os.path.join(SALMON_DIR, "{sample}", "quant.sf"), sample=SAMPLES),
-      quantGenesFiles = expand(os.path.join(SALMON_DIR, "{sample}", "quant.genes.sf"), sample=SAMPLES),
-      colDataFile = rules.translate_sample_sheet_for_report.output
+      colDataFile = rules.translate_sample_sheet_for_report.output,
+      salmon_quant_tar = expand(os.path.join(OUTPUT_DIR, "{sample}", "salmon-quant.tar"), sample=SAMPLES)
   output:
       os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.transcripts.tsv"),
       os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.genes.tsv"),
@@ -493,7 +493,7 @@ rule counts_from_SALMON:
   resources:
       mem_mb = config['execution']['rules']['counts_from_SALMON']['memory']
   log: os.path.join(LOG_DIR, "salmon", 'salmon_import_counts.log')
-  shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/counts_matrix_from_SALMON.R {SALMON_DIR} {COUNTS_DIR} {input.colDataFile} >> {log} 2>&1"
+  shell: "(tempdir=$(mktemp -d); for f in {input.salmon_quant_tar}; do tar xf $f -C $tempdir; done; {RSCRIPT_EXEC} {SCRIPTS_DIR}/counts_matrix_from_SALMON.R $tempdir {COUNTS_DIR} {input.colDataFile}) >> {log} 2>&1"
 
 # compute genome coverage using megadepth
 rule coverage_megadepth:
