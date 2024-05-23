@@ -2,7 +2,7 @@
 #
 # Copyright © 2017, 2018 Bora Uyar <bora.uyar@mdc-berlin.de>
 # Copyright © 2017, 2018 Jonathan Ronen <yablee@gmail.com>
-# Copyright © 2017-2021 Ricardo Wurmus <ricardo.wurmus@mdc-berlin.de>
+# Copyright © 2017-2024 Ricardo Wurmus <ricardo.wurmus@mdc-berlin.de>
 #
 # This file is part of the PiGx RNAseq Pipeline.
 #
@@ -212,7 +212,7 @@ targets = {
     'salmon_index' : {
         'description': "Create SALMON index file.",
         'files':
-          [os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin")]
+          [os.path.join(OUTPUT_DIR, 'salmon_index.tar')]
     },
     'salmon_quant' : {
         'description': "Calculate read counts per transcript using SALMON.",
@@ -442,20 +442,17 @@ rule salmon_index:
       CDNA_FASTA,
       rules.check_annotation_files.output
   output:
-      salmon_index_file = os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin")
+      tar = os.path.join(OUTPUT_DIR, 'salmon_index.tar')
   resources:
       mem_mb = config['execution']['rules']['salmon_index']['memory']
   params:
       salmon_index_dir = os.path.join(OUTPUT_DIR, 'salmon_index')
   log: os.path.join(LOG_DIR, "salmon", 'salmon_index.log')
-  shell: "{SALMON_INDEX_EXEC} -t {input[0]} -i {params.salmon_index_dir} -p {SALMON_INDEX_THREADS} >> {log} 2>&1"
+  shell: "({SALMON_INDEX_EXEC} -t {input[0]} -i {params.salmon_index_dir} -p {SALMON_INDEX_THREADS} && cd {params.salmon_index_dir} && tar cf {output.tar}.temp . && mv {output.tar}.temp {output.tar}) >> {log} 2>&1"
 
 rule salmon_quant:
   input:
-      # This rule really depends on the whole directory (see
-      # params.index_dir), but we can't register it as an input/output
-      # in its own right since Snakemake 5.
-      index_file = rules.salmon_index.output.salmon_index_file,
+      index_tar = rules.salmon_index.output.tar,
       reads = map_input
   output:
       os.path.join(SALMON_DIR, "{sample}", "quant.sf"),
@@ -463,14 +460,24 @@ rule salmon_quant:
   resources:
       mem_mb = config['execution']['rules']['salmon_quant']['memory']
   params:
-      index_dir = rules.salmon_index.params.salmon_index_dir,
       outfolder = os.path.join(SALMON_DIR, "{sample}")
   log: os.path.join(LOG_DIR, "salmon", 'salmon_quant_{sample}.log')
   run:
-    if(len(input.reads) == 1):
-        COMMAND = "{SALMON_QUANT_EXEC} -i {params.index_dir} -l A -p {SALMON_QUANT_THREADS} -r {input.reads} -o {params.outfolder} --seqBias --gcBias -g {GTF_FILE} >> {log} 2>&1"
-    elif(len(input.reads) == 2):
-        COMMAND = "{SALMON_QUANT_EXEC} -i {params.index_dir} -l A -p {SALMON_QUANT_THREADS} -1 {input.reads[0]} -2 {input.reads[1]} -o {params.outfolder} --seqBias --gcBias -g {GTF_FILE} >> {log} 2>&1"
+    if (len(input.reads) == 1):
+        pe_se_args="-r {}".format(input.reads)
+    else:
+        pe_se_args="-1 {reads[0]} -2 {reads[1]}".format(reads=input.reads)
+    COMMAND = f"\
+(index_dir=$(mktemp -d) && \
+tar xf {input.index_tar} -C $index_dir && \
+{SALMON_QUANT_EXEC} -i $index_dir -l A \
+    -p {SALMON_QUANT_THREADS} {pe_se_args} \
+    -o {params.outfolder} \
+    --seqBias --gcBias \
+    -g {GTF_FILE} && \
+mkdir -p $(dirname {output.salmon_quant_tar}) && \
+cd {SALMON_DIR} && tar cf {output.salmon_quant_tar}.temp {wildcards.sample} && \
+mv {output.salmon_quant_tar}.temp {output.salmon_quant_tar}) >> {log} 2>&1"
     shell(COMMAND)
 
 rule counts_from_SALMON:
