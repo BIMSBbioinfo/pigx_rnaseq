@@ -17,6 +17,7 @@ dist_pkglibexec_scripts_SCRIPTS =					\
   scripts/norm_counts_deseq.R	\
   scripts/count_reads.R	\
   scripts/collate_read_counts.R \
+  scripts/collate_deseq_results.R \
   scripts/validate_input_annotation.R
 
 dist_pkgdata_DATA =									\
