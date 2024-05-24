@@ -616,6 +616,7 @@ rule norm_counts_deseq:
 rule report1:
   input:
     gtf=GTF_FILE,
+    logo=LOGO,
     counts=os.path.join(COUNTS_DIR, "raw_counts", MAPPER, "counts.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output),
   params:
@@ -626,8 +627,7 @@ rule report1:
     case = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['case_sample_groups'],
     control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
     covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
-    selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained'],
-    logo = LOGO
+    selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained']
   log: os.path.join(LOG_DIR, MAPPER, "{analysis}.report.log")
   output:
     os.path.join(OUTPUT_DIR, "report", MAPPER, '{analysis}.deseq.report.html'),
@@ -636,7 +636,7 @@ rule report1:
     mem_mb = config['execution']['rules']['report1']['memory']
   shell:
     """{RSCRIPT_EXEC} {params.reportR}       \
-    --logo={params.logo}                     \
+    --logo={input.logo}                      \
     --prefix='{wildcards.analysis}'          \
     --reportFile={params.reportRmd}          \
     --countDataFile={input.counts}           \
@@ -670,6 +670,7 @@ rule deseq_collate_report1:
 rule report2:
   input:
     gtf=GTF_FILE,
+    logo=LOGO,
     counts=os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.transcripts.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output)
   params:
@@ -680,8 +681,7 @@ rule report2:
     case = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['case_sample_groups'],
     control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
     covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
-    selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained'],
-    logo = LOGO
+    selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained']
   log: os.path.join(LOG_DIR, "salmon", "{analysis}.report.salmon.transcripts.log")
   output:
     os.path.join(OUTPUT_DIR, "report", 'salmon', '{analysis}.salmon.transcripts.deseq.report.html'),
@@ -689,7 +689,7 @@ rule report2:
   resources:
     mem_mb = config['execution']['rules']['report2']['memory']
   shell: """{RSCRIPT_EXEC} {params.reportR}          \
-  --logo={params.logo}                               \
+  --logo={input.logo}                                \
   --prefix='{wildcards.analysis}.salmon.transcripts' \
   --reportFile={params.reportRmd}                    \
   --countDataFile={input.counts}                     \
@@ -723,6 +723,7 @@ rule deseq_collate_report2:
 rule report3:
   input:
     gtf=GTF_FILE,
+    logo=LOGO,
     counts=os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.genes.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output)
   params:
@@ -733,8 +734,7 @@ rule report3:
     case = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['case_sample_groups'],
     control = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['control_sample_groups'],
     covariates = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['covariates'],
-    selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained'],
-    logo = LOGO
+    selfContained = lambda wildcards: DE_ANALYSIS_LIST[wildcards.analysis]['self_contained']
   log: os.path.join(LOG_DIR, "salmon", "{analysis}.report.salmon.genes.log")
   output:
     os.path.join(OUTPUT_DIR, "report", "salmon", '{analysis}.salmon.genes.deseq.report.html'),
@@ -742,7 +742,7 @@ rule report3:
   resources:
     mem_mb = config['execution']['rules']['report3']['memory']
   shell: """{RSCRIPT_EXEC} {params.reportR}    \
-  --logo={params.logo}                         \
+  --logo={input.logo}                          \
   --prefix='{wildcards.analysis}.salmon.genes' \
   --reportFile={params.reportRmd}              \
   --countDataFile={input.counts}               \
