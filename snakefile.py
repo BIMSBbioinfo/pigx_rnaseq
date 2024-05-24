@@ -448,7 +448,14 @@ rule salmon_index:
   params:
       salmon_index_dir = os.path.join(OUTPUT_DIR, 'salmon_index')
   log: os.path.join(LOG_DIR, "salmon", 'salmon_index.log')
-  shell: "({SALMON_INDEX_EXEC} -t {input[0]} -i {params.salmon_index_dir} -p {SALMON_INDEX_THREADS} && cd {params.salmon_index_dir} && tar cf {output.tar}.temp . && mv {output.tar}.temp {output.tar}) >> {log} 2>&1"
+  shell: "(tmp=$(mktemp) && \
+{SALMON_INDEX_EXEC} -t {input[0]} \
+  -i {params.salmon_index_dir} \
+  -p {SALMON_INDEX_THREADS} && \
+mkdir -p $(dirname {output.tar}) && \
+cd {params.salmon_index_dir} && \
+tar cf $tmp . && \
+mv $tmp {output.tar}) >> {log} 2>&1"
 
 rule salmon_quant:
   input:
