@@ -349,9 +349,10 @@ rule trim_qc_reads_se:
   shell: "{FASTP_EXEC} --in1 {input[0]} --out1 {output.r} -h {output.html} -j {output.json} >> {log} 2>&1 "
 
 rule star_index:
-    input: 
-      GENOME_FASTA,
-      rules.check_annotation_files.output 
+    input:
+      gtf = GTF_FILE,
+      genome = GENOME_FASTA,
+      checked = rules.check_annotation_files.output
     output:
         star_index_file = os.path.join(OUTPUT_DIR, 'star_index', "SAindex")
     resources:
@@ -359,7 +360,7 @@ rule star_index:
     params:
         star_index_dir = os.path.join(OUTPUT_DIR, 'star_index')
     log: os.path.join(LOG_DIR, 'star_index.log')
-    shell: "{STAR_EXEC_INDEX} --runMode genomeGenerate --runThreadN {STAR_INDEX_THREADS} --genomeDir {params.star_index_dir} --genomeFastaFiles {input[0]} --sjdbGTFfile {GTF_FILE} >> {log} 2>&1"
+    shell: "{STAR_EXEC_INDEX} --runMode genomeGenerate --runThreadN {STAR_INDEX_THREADS} --genomeDir {params.star_index_dir} --genomeFastaFiles {input.genome} --sjdbGTFfile {input.gtf} >> {log} 2>&1"
 
 rule hisat2_index:
     input: 
@@ -459,6 +460,7 @@ mv $tmp {output.tar}) >> {log} 2>&1"
 
 rule salmon_quant:
   input:
+      gtf = GTF_FILE,
       index_tar = rules.salmon_index.output.tar,
       reads = map_input
   output:
@@ -482,7 +484,7 @@ tar xf {input.index_tar} -C $index_dir && \
     -p {SALMON_QUANT_THREADS} {pe_se_args} \
     -o {params.outfolder} \
     --seqBias --gcBias \
-    -g {GTF_FILE} && \
+    -g {input.gtf} && \
 mkdir -p $(dirname {output.salmon_quant_tar}) && \
 cd {SALMON_DIR} && tar cf {output.salmon_quant_tar}.temp {wildcards.sample} && \
 mv {output.salmon_quant_tar}.temp {output.salmon_quant_tar}) >> {log} 2>&1"
