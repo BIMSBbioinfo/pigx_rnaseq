@@ -548,6 +548,7 @@ rule multiqc:
 
 rule count_reads:
   input:
+    gtf = GTF_FILE,
     bam = os.path.join(MAPPED_READS_DIR, MAPPER, "{sample}_Aligned.sortedByCoord.out.bam"),
     bai = os.path.join(MAPPED_READS_DIR, MAPPER, "{sample}_Aligned.sortedByCoord.out.bam.bai")
   output:
@@ -564,7 +565,7 @@ rule count_reads:
     group_by = config['counting']['group_feature_by'],
     yield_size = config['counting']['yield_size']
   shell:
-    "{RSCRIPT_EXEC} {SCRIPTS_DIR}/count_reads.R {wildcards.sample} {input.bam} {GTF_FILE} \
+    "{RSCRIPT_EXEC} {SCRIPTS_DIR}/count_reads.R {wildcards.sample} {input.bam} {input.gtf} \
         {params.single_end} {params.mode} {params.nonunique} {params.strandedness} \
         {params.feature} {params.group_by} {params.yield_size} >> {log} 2>&1"
 
@@ -605,6 +606,7 @@ rule norm_counts_deseq:
 
 rule report1:
   input:
+    gtf=GTF_FILE,
     counts=os.path.join(COUNTS_DIR, "raw_counts", MAPPER, "counts.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output),
   params:
@@ -630,7 +632,7 @@ rule report1:
     --reportFile={params.reportRmd}          \
     --countDataFile={input.counts}           \
     --colDataFile={input.coldata}            \
-    --gtfFile={GTF_FILE}                     \
+    --gtfFile={input.gtf}                    \
     --caseSampleGroups='{params.case}'       \
     --controlSampleGroups='{params.control}' \
     --covariates='{params.covariates}'       \
@@ -658,6 +660,7 @@ rule deseq_collate_report1:
 
 rule report2:
   input:
+    gtf=GTF_FILE,
     counts=os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.transcripts.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output)
   params:
@@ -682,7 +685,7 @@ rule report2:
   --reportFile={params.reportRmd}                    \
   --countDataFile={input.counts}                     \
   --colDataFile={input.coldata}                      \
-  --gtfFile={GTF_FILE}                               \
+  --gtfFile={input.gtf}                              \
   --caseSampleGroups='{params.case}'                 \
   --controlSampleGroups='{params.control}'           \
   --covariates='{params.covariates}'                 \
@@ -710,6 +713,7 @@ rule deseq_collate_report2:
 
 rule report3:
   input:
+    gtf=GTF_FILE,
     counts=os.path.join(COUNTS_DIR, "raw_counts", "salmon", "counts_from_SALMON.genes.tsv"),
     coldata=str(rules.translate_sample_sheet_for_report.output)
   params:
@@ -734,7 +738,7 @@ rule report3:
   --reportFile={params.reportRmd}              \
   --countDataFile={input.counts}               \
   --colDataFile={input.coldata}                \
-  --gtfFile={GTF_FILE}                         \
+  --gtfFile={input.gtf}                        \
   --caseSampleGroups='{params.case}'           \
   --controlSampleGroups='{params.control}'     \
   --covariates='{params.covariates}'           \
