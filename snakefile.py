@@ -212,7 +212,7 @@ targets = {
     'salmon_index' : {
         'description': "Create SALMON index file.",
         'files':
-          [os.path.join(OUTPUT_DIR, 'salmon_index.tar')]
+          [os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin")]
     },
     'salmon_quant' : {
         'description': "Calculate read counts per transcript using SALMON.",
@@ -443,25 +443,33 @@ rule salmon_index:
       CDNA_FASTA,
       rules.check_annotation_files.output
   output:
-      tar = os.path.join(OUTPUT_DIR, 'salmon_index.tar')
+      os.path.join(OUTPUT_DIR, 'salmon_index', "complete_ref_lens.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "ctable.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "ctg_offsets.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "duplicate_clusters.tsv"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "info.json"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "mphf.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "pos.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "rank.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "refAccumLengths.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "ref_indexing.log"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "reflengths.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "refseq.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "seq.bin"),
+      os.path.join(OUTPUT_DIR, 'salmon_index', "versionInfo.json")
   resources:
       mem_mb = config['execution']['rules']['salmon_index']['memory']
   params:
       salmon_index_dir = os.path.join(OUTPUT_DIR, 'salmon_index')
   log: os.path.join(LOG_DIR, "salmon", 'salmon_index.log')
-  shell: "(tmp=$(mktemp) && \
-{SALMON_INDEX_EXEC} -t {input[0]} \
+  shell: "{SALMON_INDEX_EXEC} -t {input[0]} \
   -i {params.salmon_index_dir} \
-  -p {SALMON_INDEX_THREADS} && \
-mkdir -p $(dirname {output.tar}) && \
-cd {params.salmon_index_dir} && \
-tar cf $tmp . && \
-mv $tmp {output.tar}) >> {log} 2>&1"
+  -p {SALMON_INDEX_THREADS} >> {log} 2>&1"
 
 rule salmon_quant:
   input:
       gtf = GTF_FILE,
-      index_tar = rules.salmon_index.output.tar,
+      index_files = rules.salmon_index.output,
       reads = map_input
   output:
       os.path.join(SALMON_DIR, "{sample}", "quant.sf"),
@@ -470,6 +478,7 @@ rule salmon_quant:
   resources:
       mem_mb = config['execution']['rules']['salmon_quant']['memory']
   params:
+      salmon_index_dir = os.path.join(OUTPUT_DIR, 'salmon_index'),
       outfolder = os.path.join(SALMON_DIR, "{sample}")
   log: os.path.join(LOG_DIR, "salmon", 'salmon_quant_{sample}.log')
   run:
@@ -478,16 +487,14 @@ rule salmon_quant:
     else:
         pe_se_args="-1 {reads[0]} -2 {reads[1]}".format(reads=input.reads)
     COMMAND = f"\
-(index_dir=$(mktemp -d) && \
-tar xf {input.index_tar} -C $index_dir && \
-{SALMON_QUANT_EXEC} -i $index_dir -l A \
+({SALMON_QUANT_EXEC} -i {params.salmon_index_dir} -l A \
     -p {SALMON_QUANT_THREADS} {pe_se_args} \
     -o {params.outfolder} \
     --seqBias --gcBias \
     -g {input.gtf} && \
+temp=$(mktemp) && cd {SALMON_DIR} && tar cf $temp {wildcards.sample} && \
 mkdir -p $(dirname {output.salmon_quant_tar}) && \
-cd {SALMON_DIR} && tar cf {output.salmon_quant_tar}.temp {wildcards.sample} && \
-mv {output.salmon_quant_tar}.temp {output.salmon_quant_tar}) >> {log} 2>&1"
+mv $temp {output.salmon_quant_tar}) >> {log} 2>&1"
     shell(COMMAND)
 
 rule counts_from_SALMON:
