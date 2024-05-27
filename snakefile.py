@@ -331,6 +331,7 @@ rule trim_qc_reads_pe:
     r2=os.path.join(TRIMMED_READS_DIR, "{sample}.trimmed.R2.fq.gz"),
     html=os.path.join(QC_DIR, "{sample}.pe.fastp.html"),
     json=os.path.join(QC_DIR, "{sample}.pe.fastp.json") #notice that multiqc recognizes files ending with fast.json
+  group: "qc"
   resources:
     mem_mb = config['execution']['rules']['trim_qc_reads_pe']['memory']
   log: os.path.join(LOG_DIR, 'trim_reads.{sample}.log')
@@ -343,6 +344,7 @@ rule trim_qc_reads_se:
     r = os.path.join(TRIMMED_READS_DIR, "{sample}.trimmed.fq.gz"),
     html=os.path.join(QC_DIR, "{sample}.se.fastp.html"),
     json=os.path.join(QC_DIR, "{sample}.se.fastp.json") #notice that multiqc recognizes files ending with fast.json
+  group: "qc"
   resources:
     mem_mb = config['execution']['rules']['trim_qc_reads_se']['memory']
   log: os.path.join(LOG_DIR, 'trim_reads.{sample}.log')
@@ -553,6 +555,7 @@ rule multiqc:
   input:
     salmon_output=expand(os.path.join(SALMON_DIR, "{sample}", "quant.sf"), sample = SAMPLES),
     mapping_output=expand(os.path.join(MAPPED_READS_DIR, MAPPER, '{sample}_Aligned.sortedByCoord.out.bam'), sample=SAMPLES)
+  group: "qc"
   output: os.path.join(MULTIQC_DIR, 'multiqc_report.html')
   resources:
     mem_mb = config['execution']['rules']['multiqc']['memory']
