@@ -475,7 +475,8 @@ rule salmon_quant:
       reads = map_input
   output:
       os.path.join(SALMON_DIR, "{sample}", "quant.sf"),
-      os.path.join(SALMON_DIR, "{sample}", "quant.genes.sf")
+      os.path.join(SALMON_DIR, "{sample}", "quant.genes.sf"),
+      os.path.join(SALMON_DIR, "{sample}", "libParams/flenDist.txt")
   resources:
       mem_mb = config['execution']['rules']['salmon_quant']['memory']
   params:
@@ -554,6 +555,7 @@ rule coverage_bamCoverage:
 rule multiqc:
   input:
     salmon_output=expand(os.path.join(SALMON_DIR, "{sample}", "quant.sf"), sample = SAMPLES),
+    salmon_flen=expand(os.path.join(SALMON_DIR, "{sample}", "libParams/flenDist.txt"), sample = SAMPLES),
     mapping_output=expand(os.path.join(MAPPED_READS_DIR, MAPPER, '{sample}_Aligned.sortedByCoord.out.bam'), sample=SAMPLES)
   group: "qc"
   output: os.path.join(MULTIQC_DIR, 'multiqc_report.html')
