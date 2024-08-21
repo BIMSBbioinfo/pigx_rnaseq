@@ -256,6 +256,8 @@ rule check_annotation_files:
     gtf = GTF_FILE
   output: 
     os.path.join(OUTPUT_DIR, 'input_annotation_stats.tsv')
+  resources:
+    mem_mb = config['execution']['rules']['check_annotation_files']['memory']
   log: os.path.join(LOG_DIR, 'check_annotation_files.log')
   shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/validate_input_annotation.R {input.gtf} {input.cdna} {input.dna} {OUTPUT_DIR} >> {log} 2>&1"
 
@@ -417,7 +419,8 @@ rule hisat2_map:
   output:
     os.path.join(MAPPED_READS_DIR, 'hisat2', '{sample}_Aligned.sortedByCoord.out.bam')
   resources:
-    mem_mb = config['execution']['rules']['hisat2_map']['memory']
+    mem_mb = config['execution']['rules']['hisat2_map']['memory'],
+    disk_mb=lambda wc, input: max(3 * input.size_mb, config['execution']['rules']['hisat2_map']['disk_mb'])
   params:
     samfile = lambda wildcards: os.path.join(MAPPED_READS_DIR, 'hisat2', "_".join([wildcards.sample, 'Aligned.out.sam'])),
     index_dir = rules.hisat2_index.params.index_directory,
