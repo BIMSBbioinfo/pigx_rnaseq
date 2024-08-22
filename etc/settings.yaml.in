@@ -118,6 +118,7 @@ execution:
     hisat2_map:
       threads: 2
       memory: 8000
+      disk_mb: 7000
     index_bam:
       threads: 2
       memory: 500
@@ -135,7 +136,7 @@ execution:
       memory: 6000
     check_annotation_files: 
       threads: 1
-      memory: 16000
+      memory: 6000
     report1:
       threads: 1
       memory: 4000  
