@@ -257,7 +257,7 @@ rule check_annotation_files:
   output: 
     os.path.join(OUTPUT_DIR, 'input_annotation_stats.tsv')
   resources:
-    mem_mb = config['execution']['rules']['check_annotation_files']['memory']
+    mem_mb = lambda wc, input: max(1.5 * input.size_mb, config['execution']['rules']['check_annotation_files']['memory'])
   log: os.path.join(LOG_DIR, 'check_annotation_files.log')
   shell: "{RSCRIPT_EXEC} {SCRIPTS_DIR}/validate_input_annotation.R {input.gtf} {input.cdna} {input.dna} {OUTPUT_DIR} >> {log} 2>&1"
 
