@@ -563,7 +563,8 @@ rule multiqc:
   group: "qc"
   output: os.path.join(MULTIQC_DIR, 'multiqc_report.html')
   resources:
-    mem_mb = config['execution']['rules']['multiqc']['memory']
+    mem_mb = config['execution']['rules']['multiqc']['memory'],
+    disk_mb = lambda wc, input: max(round(2 * input.size_mb), config['execution']['rules']['multiqc']['disk_mb'])
   log: os.path.join(LOG_DIR, f'multiqc.{MAPPER}.log')
   shell: "{MULTIQC_EXEC} -f -o {MULTIQC_DIR} {OUTPUT_DIR} >> {log} 2>&1"
 

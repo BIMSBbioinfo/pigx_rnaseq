@@ -125,6 +125,7 @@ execution:
     multiqc:
       threads: 2
       memory: 500
+      disk_mb: 20000
     coverage_bamCoverage:
       threads: 1
       memory: 4000
