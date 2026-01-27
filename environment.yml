@@ -1,0 +1,51 @@
+name: pigx-rnaseq
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  # Python + core
+  - python
+  - snakemake
+  - pyyaml
+  - pandoc
+
+  # RNA-seq / bio tools
+  - fastp
+  - star
+  - hisat2
+  - salmon
+  - samtools
+  - htseq
+  - megadepth
+  - multiqc
+  - deeptools
+
+  # R base + selected R packages (conda-forge/bioconda builds)
+  - r-base
+  - r-rmarkdown
+  - r-knitr
+  - r-ggplot2
+  - r-ggpubr
+  - r-ggrepel
+  - r-scales
+  - r-plotly
+  - r-dt
+  - r-corrplot
+  - r-pheatmap
+  - r-reshape2
+  - r-rjson
+  - r-crosstalk
+
+  # Bioconductor packages (conda/bioconda builds where available)
+  - bioconductor-deseq2
+  - bioconductor-summarizedexperiment
+  - bioconductor-tximport
+  - bioconductor-rtracklayer
+  - r-gprofiler2
+
+  # Misc
+  - pcre2
+  - zlib
+  - xz
+
