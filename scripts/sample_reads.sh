@@ -11,6 +11,6 @@ mkdir -p "$out"
 find "$in" -name "*.${ext}" -type f | while read -r f; do
   b=$(basename "$f" ".${ext}")
   echo "Extracting ${n} lines from ${f}"
-  zcat "$f" | head -n "$n" | gzip > "$out/${b}.${ext}"
+  zcat "$f"  2>/dev/null | head -n "$n" | gzip -c > "$out/${b}.${ext}"
 done
 
