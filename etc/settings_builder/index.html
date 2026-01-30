@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Settings Builder — static (map support, example DE)</title>
+
+<!-- js-yaml from CDN for YAML parsing/serialization -->
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial; max-width:1100px; margin:20px auto; padding:16px; }
+  h1 { margin:0 0 8px 0 }
+  .section { border:1px solid #eee; border-radius:8px; padding:12px; margin-bottom:12px; background:#fff; }
+  .sub { margin-left:12px; border-left:2px solid #f0f0f0; padding-left:10px; margin-top:8px; padding-top:8px; }
+  .row { display:flex; gap:12px; align-items:flex-start; margin-bottom:8px; }
+  .col-label { flex:0.35 }
+  .col-input { flex:1 }
+  label { font-weight:600; display:block }
+  input[type=text], input[type=number], textarea, select { width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; }
+  textarea { min-height:50px; font-family: monospace }
+  .small { font-size:13px; color:#666; margin-top:4px }
+  .controls { display:flex; gap:8px; margin-top:4px }
+  button { padding:9px 12px; border-radius:6px; border:0; background:#0b63d6; color:#fff; cursor:pointer }
+  button.secondary { background:#666 }
+  .preview { white-space:pre-wrap; background:#fbfdff; padding:12px; border-radius:6px; border:1px solid #e6eef8; max-height:520px; overflow:auto; }
+  .toggle { cursor:pointer; font-weight:700; margin-bottom:6px }
+  .hint { color:#555; font-size:13px; margin-bottom:8px }
+  .map-entry { border:1px dashed #ddd; padding:10px; margin-bottom:10px; border-radius:6px; background:#fafafa }
+  .map-controls { display:flex; gap:6px; justify-content:flex-end; margin-bottom:6px }
+  .small-btn { padding:6px 8px; font-size:13px; border-radius:6px; border:0; background:#e33; color:#fff; cursor:pointer }
+  .add-btn { padding:6px 8px; font-size:13px; border-radius:6px; border:0; background:#089; color:#fff; cursor:pointer }
+</style>
+</head>
+<body>
+
+  <!-- Intro / info box -->
+  <div class="section" style="background:#f8fafc;border-color:#dde6f0">
+    <h1 style="margin-top:0">pigx-rnaseq settings builder</h1>
+
+    <p class="small">
+      This tool helps you generate a valid <code>settings.yaml</code> file for the
+      <strong>pigx-rnaseq</strong> pipeline using a guided web interface.
+      It is intended to replace manual editing of YAML files by providing
+      structured forms for common configuration options and differential
+      expression analyses.
+    </p>
+
+    <p class="small">
+      After filling out the form, download the generated <code>settings.yaml</code>
+      and run the pipeline as usual.
+    </p>
+
+    <ul class="small">
+      <li>
+        Source Code:
+        <a href="https://github.com/BIMSBbioinfo/pigx_rnaseq" target="_blank" rel="noopener">
+          https://github.com/BIMSBbioinfo/pigx_rnaseq
+        </a>
+      </li>
+      <li>
+        Documentation:
+        <a href="https://bioinformatics.mdc-berlin.de/pigx_docs/pigx-rna-seq.html" target="_blank" rel="noopener">
+          https://bioinformatics.mdc-berlin.de/pigx_docs/pigx-rna-seq.html
+        </a>
+      </li> 
+      <li>
+        Paper: Wurmus R, Uyar B, Osberg B, Franke V, Gosdschan A, Wreczycka K, Ronen J, Akalin A. 
+        <a href="https://academic.oup.com/gigascience/article/7/12/giy123/5114263" target="_blank" rel="noopener">
+          PiGx: Reproducible genomics analysis pipelines with GNU Guix.
+        </a> 
+        Gigascience. 2018
+      </li>
+    </ul>
+  </div>
+
+  <div id="ui"></div>
+
+  <div class="controls" style="margin-top:8px">
+    <button id="previewBtn">Preview</button>
+    <button id="downloadBtn">Download YAML</button>
+    <button class="secondary" id="resetBtn">Reset</button>
+  </div>
+
+  <h3>Preview</h3>
+  <div id="preview" class="preview"></div>
+
+<script>
+/*
+  Static Settings Builder (map support + default example entry)
+  - If a map (DEanalyses) has no entries, create a pre-filled example "analysis1"
+  - Add button lets users add more; auto-generates unique names if user cancels prompt
+  - robust args quoting preserved
+*/
+
+const SCHEMA_FILE = 'settings.schema.yaml';
+
+function esc(s){ return (s===null||s===undefined) ? '' : String(s); }
+
+async function fetchSchema(){
+  const resp = await fetch(SCHEMA_FILE);
+  if(!resp.ok) throw new Error(`Can't load ${SCHEMA_FILE}: ${resp.status}`);
+  const text = await resp.text();
+  return jsyaml.load(text);
+}
+
+function defaultsFromSchema(schema){
+  const out = {};
+  function walk(node, dst){
+    for(const k of Object.keys(node || {})){
+      const v = node[k];
+      if(typeof v === 'object' && v !== null && !('type' in v)){
+        dst[k] = {};
+        walk(v, dst[k]);
+      } else if(typeof v === 'object' && v !== null && v.type === 'map'){
+        dst[k] = {};
+      } else {
+        if(typeof v === 'object' && v !== null){
+          dst[k] = v.hasOwnProperty('default') ? v.default : null;
+        } else {
+          dst[k] = v;
+        }
+      }
+    }
+  }
+  walk(schema, out);
+  return out;
+}
+
+// helper: compute defaults for an item schema (used to pre-fill example entry)
+function defaultsForItem(itemSchema){
+  const out = {};
+  if(!itemSchema || typeof itemSchema !== 'object') return out;
+  for(const k of Object.keys(itemSchema)){
+    const v = itemSchema[k];
+    if(typeof v === 'object' && v !== null){
+      out[k] = v.hasOwnProperty('default') ? v.default : null;
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function buildUI(container, schema, values, prefix=''){
+  for(const key of Object.keys(schema || {})){
+    const node = schema[key];
+    const path = prefix ? (prefix + '.' + key) : key;
+
+    if(typeof node === 'object' && node !== null && node.type && node.type !== 'map'){
+      const section = document.createElement('div');
+      section.className = 'section';
+      const title = document.createElement('h3');
+      title.textContent = key;
+      section.appendChild(title);
+      const sub = document.createElement('div'); sub.className = 'sub';
+      renderField(sub, key, node, values, path);
+      section.appendChild(sub);
+      container.appendChild(section);
+      continue;
+    }
+
+    if(typeof node === 'object' && node !== null && node.type === 'map'){
+      const section = document.createElement('div');
+      section.className = 'section';
+      const title = document.createElement('h3');
+      title.textContent = key;
+      section.appendChild(title);
+      if(node.description){
+        const hint = document.createElement('div'); hint.className='hint'; hint.textContent=node.description; section.appendChild(hint);
+      }
+      const sub = document.createElement('div'); sub.className='sub';
+      renderMapSection(sub, key, node, values, path);
+      section.appendChild(sub);
+      container.appendChild(section);
+      continue;
+    }
+
+    const section = document.createElement('div');
+    section.className = 'section';
+    const header = document.createElement('h3'); header.textContent = key; section.appendChild(header);
+    if(node && node.description && typeof node.description === 'string' && !node.type){
+      const hint = document.createElement('div'); hint.className='hint'; hint.textContent=node.description; section.appendChild(hint);
+    }
+    const sub = document.createElement('div'); sub.className = 'sub';
+
+    for(const childKey of Object.keys(node || {})){
+      const child = node[childKey];
+      if(path === 'tools' && childKey === 'executable') continue;
+      if(typeof child === 'object' && child !== null && !('type' in child)){
+        const group = document.createElement('div');
+        const toggle = document.createElement('div'); toggle.className = 'toggle'; toggle.textContent = childKey; group.appendChild(toggle);
+        const inner = document.createElement('div'); inner.className='sub';
+        buildUI(inner, {[childKey]: child}, values, path);
+        group.appendChild(inner);
+        sub.appendChild(group);
+      } else if(typeof child === 'object' && child !== null && child.type === 'map'){
+        renderMapSection(sub, childKey, child, values, path + '.' + childKey);
+      } else {
+        renderField(sub, childKey, child, values, path + '.' + childKey);
+      }
+    }
+    section.appendChild(sub);
+    container.appendChild(section);
+  }
+}
+
+function renderMapSection(parent, name, node, values, path){
+  const container = document.createElement('div');
+  const entriesContainer = document.createElement('div');
+  entriesContainer.className = 'sub';
+  container.appendChild(entriesContainer);
+
+  const existing = (function(){
+    const parts = path.split('.');
+    let cur = values;
+    for(const p of parts) { if(cur && typeof cur === 'object') cur = cur[p]; else cur = undefined; }
+    return (cur && typeof cur === 'object') ? cur : {};
+  })();
+
+  const itemDefaults = defaultsForItem(node.item);
+
+  // create entry UI
+  function createEntryUI(entryName, entryValues){
+    const entryWrap = document.createElement('div');
+    entryWrap.className = 'map-entry';
+    const mapControls = document.createElement('div');
+    mapControls.className = 'map-controls';
+    const lbl = document.createElement('div'); lbl.style.flex='1'; lbl.style.fontWeight='700'; lbl.textContent = entryName;
+    const removeBtn = document.createElement('button'); removeBtn.className='small-btn'; removeBtn.textContent='Remove';
+    removeBtn.addEventListener('click', ()=>{
+      if(!confirm('Remove analysis "'+entryName+'"?')) return;
+      entryWrap.remove();
+    });
+    mapControls.appendChild(lbl);
+    mapControls.appendChild(removeBtn);
+    entryWrap.appendChild(mapControls);
+
+    const itemSchema = node.item || {};
+    const inner = document.createElement('div'); inner.className='sub';
+    for(const fk of Object.keys(itemSchema || {})){
+      const fnode = itemSchema[fk];
+      // prefill: use passed entryValues if present, else use itemDefaults
+      const prefillObj = {};
+      prefillObj[entryName] = Object.assign({}, itemDefaults, entryValues || {});
+      renderField(inner, fk, fnode, prefillObj, path + '.' + entryName + '.' + fk);
+    }
+    entryWrap.appendChild(inner);
+    return entryWrap;
+  }
+
+  // If there are no existing entries, insert one example by default: "analysis1"
+  const existingNames = Object.keys(existing);
+  if(existingNames.length === 0){
+    entriesContainer.appendChild(createEntryUI('analysis1', itemDefaults));
+  } else {
+    existingNames.forEach(nameKey => {
+      const val = existing[nameKey];
+      entriesContainer.appendChild(createEntryUI(nameKey, val));
+    });
+  }
+
+  // add button logic: generate unique name if user cancels or leaves blank
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-btn';
+  addBtn.textContent = 'Add analysis';
+  addBtn.addEventListener('click', ()=>{
+    let newName = prompt('Enter a unique name for the analysis (letters, numbers, underscore, dash). Leave blank to auto-generate:');
+    if(newName) newName = newName.trim();
+    // auto-generate if empty or invalid
+    const existingDomNames = Array.from(entriesContainer.querySelectorAll('.map-entry .map-controls div')).map(d => d.textContent);
+    function generateName(){
+      let idx = 1;
+      while(true){
+        const candidate = 'analysis' + (idx === 1 ? '' : idx);
+        if(!existingDomNames.includes(candidate) && !Array.from(entriesContainer.querySelectorAll('.map-entry .map-controls div')).some(d=>d.textContent===candidate)) return candidate;
+        idx++;
+      }
+    }
+    if(!newName || !/^[A-Za-z0-9_-]+$/.test(newName)){
+      newName = generateName();
+    } else {
+      // ensure uniqueness
+      if(existingDomNames.includes(newName) || Array.from(entriesContainer.querySelectorAll('.map-entry .map-controls div')).some(d=>d.textContent===newName)){
+        alert('Name already exists. Auto-generating a unique name instead.');
+        newName = generateName();
+      }
+    }
+    const entry = createEntryUI(newName, itemDefaults);
+    entriesContainer.appendChild(entry);
+    entry.scrollIntoView({behavior:'smooth'});
+  });
+
+  container.appendChild(entriesContainer);
+  container.appendChild(addBtn);
+  parent.appendChild(container);
+}
+
+function renderField(parent, name, schemaNode, values, dottedPath){
+  const row = document.createElement('div'); row.className = 'row';
+  const labelCol = document.createElement('div'); labelCol.className = 'col-label';
+  const inputCol = document.createElement('div'); inputCol.className = 'col-input';
+  const label = document.createElement('label');
+  label.htmlFor = dottedPath.replace(/\./g,'__');
+  label.textContent = name;
+  labelCol.appendChild(label);
+
+  if(schemaNode && typeof schemaNode === 'object' && schemaNode.description){
+    const small = document.createElement('div'); small.className = 'small'; small.textContent = schemaNode.description;
+    labelCol.appendChild(small);
+  }
+
+  let type = 'string';
+  let val = '';
+  if(typeof schemaNode === 'object' && schemaNode !== null && schemaNode.type && schemaNode.type !== 'map'){
+    type = schemaNode.type;
+    val = (schemaNode.hasOwnProperty('default') ? schemaNode.default : '');
+  } else if(typeof schemaNode === 'object' && schemaNode !== null && schemaNode.type === 'map'){
+    return;
+  } else if(typeof schemaNode === 'object' && schemaNode !== null){
+    type = 'string';
+    val = schemaNode;
+  } else {
+    type = 'string';
+    val = schemaNode;
+  }
+
+  const pathParts = dottedPath.split('.');
+  let cur = values;
+  for(const p of pathParts.slice(0, -1)){
+    if(cur && typeof cur === 'object') cur = cur[p];
+    else cur = undefined;
+  }
+  const last = pathParts[pathParts.length-1];
+  if(cur && typeof cur === 'object' && cur.hasOwnProperty(last)) val = cur[last];
+
+  const fid = dottedPath.replace(/\./g,'__');
+  if(type === 'bool'){
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = fid; cb.name = dottedPath;
+    if(val === true || val === 'true' || val === 1) cb.checked = true;
+    inputCol.appendChild(cb);
+  } else if(type === 'number' || type === 'int'){
+    const inp = document.createElement('input'); inp.type = 'number'; inp.id = fid; inp.name = dottedPath;
+    inp.value = (val===null||val===undefined)?'':String(val);
+    inputCol.appendChild(inp);
+  } else if(type === 'select'){
+    const sel = document.createElement('select'); sel.id = fid; sel.name = dottedPath;
+    const opts = (schemaNode && schemaNode.options) ? schemaNode.options : [];
+    const emptyOpt = document.createElement('option'); emptyOpt.value = ''; emptyOpt.textContent = '';
+    if(val === null || val === undefined || val === '') emptyOpt.selected = true;
+    sel.appendChild(emptyOpt);
+    (opts || []).forEach(o => {
+      const opt = document.createElement('option'); opt.value = o; opt.textContent = o;
+      if(String(o) === String(val)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    inputCol.appendChild(sel);
+  } else if(type === 'text' || (typeof val === 'string' && val.length > 120)){
+    const ta = document.createElement('textarea'); ta.id = fid; ta.name = dottedPath; ta.value = esc(val); inputCol.appendChild(ta);
+  } else if(type === 'list'){
+    const ta = document.createElement('textarea'); ta.id = fid; ta.name = dottedPath;
+    if(Array.isArray(val)) ta.value = val.join('\n'); else ta.value = esc(val);
+    inputCol.appendChild(ta);
+  } else {
+    const inp = document.createElement('input'); inp.type = 'text'; inp.id = fid; inp.name = dottedPath; inp.value = (val===null||val===undefined)?'':String(val);
+    inputCol.appendChild(inp);
+  }
+
+  row.appendChild(labelCol); row.appendChild(inputCol); parent.appendChild(row);
+}
+
+function collectValues(rootSchema){
+  const form = document.querySelectorAll('[name]');
+  const data = defaultsFromSchema(rootSchema);
+
+  function flattenTypes(node, prefix=''){
+    const map = {};
+    for(const k of Object.keys(node || {})){
+      const v = node[k];
+      const path = prefix ? (prefix + '.' + k) : k;
+      if(typeof v === 'object' && v !== null && !('type' in v)){
+        Object.assign(map, flattenTypes(v, path));
+      } else if(typeof v === 'object' && v !== null && v.type === 'map'){
+        const item = v.item || {};
+        Object.assign(map, flattenTypes(item, path + '.<ENTRY>'));
+      } else {
+        let t = 'string';
+        if(typeof v === 'object' && v !== null && v.type) t = v.type;
+        map[path] = t;
+      }
+    }
+    return map;
+  }
+
+  const types = flattenTypes(rootSchema);
+
+  function setNested(d, dotted, val){
+    const parts = dotted.split('.');
+    let cur = d;
+    for(let i=0;i<parts.length-1;i++){
+      const p = parts[i];
+      if(!(p in cur) || typeof cur[p] !== 'object') cur[p] = {};
+      cur = cur[p];
+    }
+    cur[parts[parts.length-1]] = val;
+  }
+
+  form.forEach(el => {
+    const name = el.getAttribute('name');
+    let t = types[name] || 'string';
+    let val;
+    if(el.type === 'checkbox'){
+      val = el.checked;
+    } else if(el.tagName.toLowerCase() === 'textarea'){
+      if(t === 'list'){
+        val = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+      } else {
+        val = el.value;
+      }
+    } else if(el.tagName.toLowerCase() === 'select'){
+      val = el.value;
+    } else if(el.type === 'number'){
+      const v = el.value;
+      if(v === '') val = null;
+      else if(v.includes('.')) val = parseFloat(v);
+      else val = parseInt(v,10);
+    } else {
+      val = el.value;
+    }
+    if(t === 'bool' && typeof val === 'string'){
+      const lower = val.toLowerCase();
+      val = (lower === 'true' || lower === '1' || lower === 'yes' || lower === 'y');
+    }
+    setNested(data, name, val);
+  });
+
+  return data;
+}
+
+function quoteArgsInYaml(yamlText){
+  const lines = yamlText.split('\n');
+  const out = [];
+  for(let i=0; i<lines.length; i++){
+    const line = lines[i];
+    const m = line.match(/^(\s*)(args:\s*)(.*)$/);
+    if(!m){ out.push(line); continue; }
+    const indent = m[1] || '';
+    let rest = m[3];
+    const blockMatch = rest.match(/^([>|][-+]?)(\s*)$/);
+    if(blockMatch){
+      const blockLines = [];
+      let j = i+1;
+      while(j < lines.length){
+        const nextLine = lines[j];
+        const nextMatch = nextLine.match(/^(\s*)(.*)$/);
+        const nextIndent = nextMatch ? nextMatch[1].length : 0;
+        if(nextIndent > indent.length){
+          blockLines.push(nextLine.slice(indent.length));
+          j++;
+        } else {
+          break;
+        }
+      }
+      i = j-1;
+      let blockText = blockLines.map(l => l.replace(/^\s*/, '')).join('\n');
+      blockText = blockText.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'');
+      blockText = blockText.replace(/\n/g,'\\n');
+      out.push(indent + 'args: "' + blockText + '"');
+      continue;
+    }
+    let raw = rest;
+    let comment = '';
+    const commentIdx = raw.indexOf(' #');
+    if(commentIdx !== -1){ comment = raw.slice(commentIdx); raw = raw.slice(0, commentIdx); }
+    raw = raw.trim();
+    if(raw === '' || raw.toLowerCase() === 'null'){ out.push(indent + 'args: ""' + (comment || '')); continue; }
+    if(/^".*"$/.test(raw)){ out.push(indent + 'args: ' + raw + (comment || '')); continue; }
+    if(/^'.*'$/.test(raw)){ let inner = raw.slice(1,-1); inner = inner.replace(/''/g, "'"); inner = inner.replace(/\\/g,'\\\\').replace(/"/g,'\\"'); out.push(indent + 'args: "' + inner + '"' + (comment || '')); continue; }
+    let escaped = raw.replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+    out.push(indent + 'args: "' + escaped + '"' + (comment || ''));
+  }
+  return out.join('\n');
+}
+
+function updatePreview(schema){
+  const obj = collectValues(schema);
+  let yaml = jsyaml.dump(obj, {noRefs:true});
+  yaml = quoteArgsInYaml(yaml);
+  document.getElementById('preview').textContent = yaml;
+  return yaml;
+}
+
+function downloadYaml(text){
+  const blob = new Blob([text], {type: 'text/yaml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'settings.yaml';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 500);
+}
+
+function resetUI(schema, container){
+  container.innerHTML = '';
+  const defaults = defaultsFromSchema(schema);
+  buildUI(container, schema, defaults, '');
+  let yaml = jsyaml.dump(defaults,{noRefs:true});
+  yaml = quoteArgsInYaml(yaml);
+  document.getElementById('preview').textContent = yaml;
+}
+
+(async ()=>{
+  try {
+    const schema = await fetchSchema();
+    const container = document.getElementById('ui');
+    const defaults = defaultsFromSchema(schema);
+    buildUI(container, schema, defaults, '');
+    let yaml = jsyaml.dump(defaults,{noRefs:true});
+    yaml = quoteArgsInYaml(yaml);
+    document.getElementById('preview').textContent = yaml;
+
+    document.getElementById('previewBtn').addEventListener('click', ()=> updatePreview(schema));
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{
+      const yaml = updatePreview(schema);
+      downloadYaml(yaml);
+    });
+    document.getElementById('resetBtn').addEventListener('click', ()=> resetUI(schema, container));
+
+  } catch(err) {
+    document.querySelector('.hint').textContent = 'Error loading schema: ' + err.message;
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>

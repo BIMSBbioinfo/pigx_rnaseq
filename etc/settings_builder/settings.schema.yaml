@@ -1,0 +1,287 @@
+# settings.schema.yaml
+# Schema for the pipeline settings (nested).
+# Each field: type, default, description; select fields include options.
+
+locations:
+  reads-dir:
+    type: string
+    default: /path/to/reads/
+    description: Directory containing reads (FASTQ).
+
+  output-dir:
+    type: string
+    default: /path/to/output/
+    description: Directory to store pipeline outputs.
+
+  genome-fasta:
+    type: string
+    default: /path/to/genome.fasta
+    description: Reference genome FASTA.
+
+  cdna-fasta:
+    type: string
+    default: /path/to/sample.cdna.fasta
+    description: cDNA FASTA (if used).
+
+  gtf-file:
+    type: string
+    default: /path/to/sample.gtf
+    description: Annotation GTF file.
+
+organism:
+    type: string
+    default: ""
+    description: |
+        The "organism" field is needed for GO term analysis. Leave empty if not interested.
+        Provide string like 'hsapiens' or 'mmusculus' for GO analysis.
+
+# ---------------------------
+# Optional: multiple DE analyses
+# ---------------------------
+DEanalyses:
+  type: map
+  description: >
+    Optional differential-expression analyses. Add one or more uniquely-named analyses.
+    Each analysis must define case_sample_groups and control_sample_groups.
+  # item describes the schema for each analysis entry value
+  item:
+    description:
+      type: text
+      default: ""
+      description: A short description of the purpose of the analysis.
+    case_sample_groups:
+      type: string
+      default: ""
+      description: Comma-separated sample group names for the case.
+    control_sample_groups:
+      type: string
+      default: ""
+      description: Comma-separated sample group names for the control.
+    covariates:
+      type: string
+      default: ""
+      description: Comma-separated covariates (column names in sample_sheet.csv).
+    self_contained:
+      type: bool
+      default: true
+      description: If true, produce a self-contained report (JS embedded).
+
+
+mapping:
+  mapper:
+    type: select
+    options: [hisat2, star]
+    default: hisat2
+    description: Aligners to choose from.
+
+  genome_build:
+    type: string
+    default: GRCm38
+    description: Genome build identifier used for hisat2 indices.
+
+coverage:
+  tool:
+    type: select
+    options: [megadepth, bamCoverage]
+    default: megadepth
+    description: Tool to compute coverage.
+
+counting:
+  counting_mode:
+    type: select
+    options: [Union, IntersectionStrict, IntersectionNotEmpty]
+    default: Union
+    description: Counting mode for summarizeOverlaps.
+
+  drop_nonunique:
+    type: bool
+    default: true
+    description: When true, multi-mapping reads are not counted.
+
+  strandedness:
+    type: select
+    options: [unspecific, forward, reverse]
+    default: unspecific
+    description: Strand-specific counting option.
+
+  feature:
+    type: string
+    default: exon
+    description: GTF feature to count (e.g., exon).
+
+  group_feature_by:
+    type: string
+    default: gene_id
+    description: Attribute in GTF to group features by.
+
+  yield_size:
+    type: number
+    default: 2000000
+    description: Number of reads per processing chunk.
+
+execution:
+  submit-to-cluster:
+    type: bool
+    default: false
+    description: Submit jobs to cluster?
+
+  jobs:
+    type: number
+    default: 6
+    description: Number of parallel jobs.
+
+  nice:
+    type: number
+    default: 19
+    description: Niceness level for jobs.
+
+  mem_mb:
+    type: number
+    default: 64000
+    description: Memory in MB for pipeline.
+
+  cluster:
+    missing-file-timeout:
+      type: number
+      default: 120
+      description: Timeout (s) for missing files.
+
+    memory:
+      type: string
+      default: 8G
+      description: Memory string for cluster (e.g., 8G).
+
+    stack:
+      type: string
+      default: 128M
+      description: Stack size for cluster jobs.
+
+    queue:
+      type: string
+      default: all.q
+      description: Default queue name.
+
+    contact-email:
+      type: string
+      default: none
+      description: Contact email for cluster notifications.
+
+    log-dir:
+      type: string
+      default: "."
+      description: Directory for job logs.
+
+    args:
+      type: text
+      default: ""
+      description: Extra args for cluster submission.
+
+  rules:
+    __default__:
+      threads:
+        type: number
+        default: 1
+        description: Default threads for rules.
+
+      memory:
+        type: number
+        default: 2000
+        description: Default memory for rules.
+
+    star_index:
+      threads:
+        type: number
+        default: 2
+        description: Threads for star_index.
+
+      memory:
+        type: number
+        default: 32000
+        description: Memory for star_index.
+
+tools:
+  # nested structure: tools -> TOOLNAME -> fields (we expose only args by schema)
+  gunzip:
+    args:
+      type: text
+      default: ""
+      description: Arguments for gunzip (users usually leave empty).
+
+  multiqc:
+    args:
+      type: text
+      default: ""
+      description: Arguments passed to multiqc.
+
+  star_map:
+    args:
+      type: text
+      default: ""
+      description: Arguments passed to STAR mapping.
+
+  star_index:
+    args:
+      type: text
+      default: ""
+      description: Arguments passed to STAR index generation.
+
+  hisat2:
+    args:
+      type: text
+      default: "--fast"
+      description: Arguments passed to hisat2.
+
+  hisat2-build:
+    args:
+      type: text
+      default: ""
+      description: Args for hisat2-build.
+
+  samtools:
+    args:
+      type: text
+      default: ""
+      description: Args for samtools.
+
+  salmon_index:
+    args:
+      type: text
+      default: "index"
+      description: Args for Salmon index.
+
+  salmon_quant:
+    args:
+      type: text
+      default: "quant"
+      description: Args for Salmon quant.
+
+  Rscript:
+    args:
+      type: text
+      default: "--vanilla"
+      description: Args for Rscript.
+
+  sed:
+    args:
+      type: text
+      default: ""
+      description: Args for sed.
+
+  fastp:
+    args:
+      type: text
+      default: "--adapter_sequence=AGATCGGAAGAGCACACGTCTGAACTCCAGTCA --adapter_sequence_r2=AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+      description: fastp args (adapters etc).
+
+  bamCoverage:
+    args:
+      type: text
+      default: "--normalizeUsing BPM --numberOfProcessors 2"
+      description: Args for bamCoverage.
+
+  megadepth:
+    args:
+      type: text
+      default: ""
+      description: Args for megadepth.
+
