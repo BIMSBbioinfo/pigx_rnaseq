@@ -274,7 +274,8 @@ rule record_annotation_files:
   shell: 
     """
     mkdir {OUTPUT_DIR}/annotations; cp {input.gtf} {input.cdna} {input.dna} {OUTPUT_DIR}/annotations 
-    tar -czvf {output} {OUTPUT_DIR}/annotations --remove-files >> {log} 2>&1
+    tar -czvf {output} {OUTPUT_DIR}/annotations >> {log} 2>&1
+    rm -rf {OUTPUT_DIR}/annotations
     """
 
 rule help:
